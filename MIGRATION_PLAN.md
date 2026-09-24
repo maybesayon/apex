@@ -174,12 +174,17 @@ This is the baseline Phase 2 contract tests compare against.
 ### 1.8 Incidental cleanup found
 
 - Two virtualenvs: `venv/` (stale, missing `lxml`) and `.venv/` (current).
-  Delete `venv/`.
-- `tv_webhook.py` is a whole second Flask service for one endpoint. Fold it
-  into FastAPI — removes Flask from the dependency list.
+  Delete `venv/`. *(still outstanding)*
+- ~~`tv_webhook.py` is a whole second Flask service for one endpoint.~~
+  ✅ Phase 2 — folded into `api/routers/webhooks.py`; Flask removed from
+  `requirements.txt` and the old module left as a shim that exits with
+  instructions.
+- ~~SMTP credentials are plain module constants in `config.py`.~~
+  ✅ Phase 2 — now read from the environment like every other secret.
+- ~~`requirements.txt` has no dev/test split.~~ ✅ Phase 2 —
+  `requirements-dev.txt` added.
 - `config.BACKTEST_START_DATE` is imported by `backtest.py` and never used.
-- `requirements.txt` has no dev/test split and pins `streamlit`, which the
-  backend will not need after Phase 10.
+  *(still outstanding)*
 
 ---
 
@@ -257,7 +262,7 @@ Both move before the bulk screen migration.
 |---|---|---|
 | **0** | Commit the regression suite with golden snapshots on fixed fixtures | ✅ **complete** — 134 tests, offline, deterministic, drift-detecting |
 | **1** | *(this document)* | ✅ complete |
-| **2** | FastAPI boundary. Pydantic schemas, routers, OpenAPI. Fold `tv_webhook.py` in. Move SMTP creds to env. **Contract tests assert API output equals direct function output** | Every existing feature reachable over HTTP; contract tests green |
+| **2** | FastAPI boundary, contract tests, fold in `tv_webhook.py`, SMTP creds to env | ✅ **complete** — 31 operations, 35 contract tests, Flask removed |
 | **3** | Auth rework — JWT in httpOnly cookies, refresh rotation, CSRF. Postgres migration (SQLAlchemy + Alembic) | Login works over API; sessions survive restart; isolation tests still green |
 | **4** | Job system — Redis + RQ, `/jobs/*`, progress reporting in scan loop | Broad scan runs async with live progress; failures/timeouts surface |
 | **5** | Next.js foundation — App Router, TypeScript, Tailwind with tokens ported from `theme.py`, shadcn/ui, theme provider, AppShell, generated API types | Both themes render; type-safe client; auth flow works |
@@ -278,7 +283,7 @@ First user-visible change is Phase 5.
 |---|---|---|
 | ~~No regression baseline exists~~ | ~~High~~ | ✅ Resolved in Phase 0 — 134 offline tests with golden snapshots |
 | Historical data depends entirely on an unofficial scraper | **High** | Isolated to one function; swap is contained. Revisit post-migration per decision 3 |
-| Silent numeric drift during port | **High** | Contract tests compare API output to direct calls on fixed fixtures |
+| ~~Silent numeric drift during port~~ | ~~High~~ | ✅ Resolved in Phase 2 — 35 contract tests assert API output equals direct calls |
 | SQLite on ephemeral storage loses all accounts | **High** | Postgres in Phase 3, before any real users |
 | Ops surface grows 1 → 5 processes | Medium | `docker-compose` for local; single PaaS with managed Redis/Postgres |
 | Lightweight Charts has no built-in indicator overlays | Medium | Bollinger/MA are extra line series; RSI is a second pane. Both supported |

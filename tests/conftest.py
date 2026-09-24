@@ -99,17 +99,31 @@ def offline(monkeypatch):
             "prev_close": round(prev, 2), "source": "fixture",
         }
 
-    import backtest, ml_predictions, scanner
+    def fake_multi(symbols):
+        return {s: fake_quote(s) for s in symbols if fake_quote(s)}
 
+    def fake_profile(symbol):
+        return {"name": symbol, "industry": "Test", "market_cap": 0}
+
+    import backtest, ml_predictions, prices, scanner, tradingview
+
+    # Modules that did `from prices import ...` hold their own reference.
     for mod in (backtest, ml_predictions, scanner):
         monkeypatch.setattr(mod, "get_historical_data", fake_history, raising=False)
     monkeypatch.setattr(scanner, "get_live_quote", fake_quote, raising=False)
-    monkeypatch.setattr(scanner, "get_company_profile",
-                        lambda s: {"name": s, "industry": "Test", "market_cap": 0},
-                        raising=False)
-    # TradingView ratings are a live scrape and display-only
+    monkeypatch.setattr(scanner, "get_company_profile", fake_profile, raising=False)
     monkeypatch.setattr(scanner, "get_tv_rating", lambda s: None, raising=False)
-    # Model cache would otherwise leak results between tests
+
+    # The API routers import inside the function body, so they resolve
+    # against the `prices` module at call time — patch the source too, or
+    # API tests silently hit the live network and stop being deterministic.
+    monkeypatch.setattr(prices, "get_historical_data", fake_history, raising=False)
+    monkeypatch.setattr(prices, "get_live_quote", fake_quote, raising=False)
+    monkeypatch.setattr(prices, "get_multiple_quotes", fake_multi, raising=False)
+    monkeypatch.setattr(prices, "get_company_profile", fake_profile, raising=False)
+    monkeypatch.setattr(tradingview, "get_tv_rating", lambda s: None, raising=False)
+
+    # Caches would otherwise leak results between tests
     monkeypatch.setattr(ml_predictions, "_model_cache", {}, raising=False)
     return fake_history
 

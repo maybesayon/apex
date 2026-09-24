@@ -24,11 +24,14 @@ TV_WEBHOOK_PORT = 5001
 TV_ALERTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tv_alerts.json")
 
 # ── Email Alerts (optional) ───────────────────
-ALERT_EMAIL_FROM = ""  # Your Gmail address
-ALERT_EMAIL_TO = ""  # Where to send alerts
-ALERT_EMAIL_PASS = ""  # Gmail app password (not regular password)
-SMTP_HOST = "smtp.gmail.com"
-SMTP_PORT = 587
+# Read from the environment like every other secret. These used to be plain
+# module constants, which invites pasting a real app password into a file
+# that is committed.
+ALERT_EMAIL_FROM = os.environ.get("ALERT_EMAIL_FROM", "").strip()
+ALERT_EMAIL_TO = os.environ.get("ALERT_EMAIL_TO", "").strip()
+ALERT_EMAIL_PASS = os.environ.get("ALERT_EMAIL_PASS", "").strip()
+SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com").strip()
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
 
 # ── Portfolio & Watchlist ─────────────────────
 # These are NOT configured here any more. Holdings, watchlists and trade
