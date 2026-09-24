@@ -1,0 +1,25 @@
+# Secrets
+.env
+.env.local
+
+# Virtualenvs
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Runtime state — generated per install, never source
+apex.db
+*.db
+*.sqlite3
+sp500_cache.json
+tv_alerts.json
+
+# Editor / OS
+.DS_Store
+.claude/
+.vscode/
+.idea/
