@@ -253,7 +253,10 @@ def predict_direction(symbol: str) -> dict:
     }
 
     _model_cache[symbol] = (time.time(), output)
-    return output
+    # Copy on the way out too, not just on cache hits: returning `output`
+    # itself hands the caller the cached object, so the very first caller
+    # could poison the entry for everyone else within the TTL.
+    return dict(output)
 
 
 def predict_multiple(symbols: list) -> list:

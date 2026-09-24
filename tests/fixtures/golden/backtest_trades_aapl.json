@@ -1,0 +1,74 @@
+[
+  {
+    "entry_date": "2025-01-29",
+    "entry_price": 237.64,
+    "exit_date": "2025-03-03",
+    "exit_price": 236.57,
+    "exit_reason": "MACD Cross",
+    "pnl": -4.24,
+    "pnl_pct": -0.4,
+    "shares": 4,
+    "symbol": "AAPL",
+    "win": false
+  },
+  {
+    "entry_date": "2025-03-25",
+    "entry_price": 222.38,
+    "exit_date": "2025-04-03",
+    "exit_price": 201.95,
+    "exit_reason": "MACD Cross",
+    "pnl": -81.74,
+    "pnl_pct": -9.2,
+    "shares": 4,
+    "symbol": "AAPL",
+    "win": false
+  },
+  {
+    "entry_date": "2025-04-15",
+    "entry_price": 200.9,
+    "exit_date": "2025-05-08",
+    "exit_price": 196.28,
+    "exit_reason": "MACD Cross",
+    "pnl": -18.49,
+    "pnl_pct": -2.3,
+    "shares": 4,
+    "symbol": "AAPL",
+    "win": false
+  },
+  {
+    "entry_date": "2025-06-23",
+    "entry_price": 200.53,
+    "exit_date": "2025-07-29",
+    "exit_price": 210.25,
+    "exit_reason": "MACD Cross",
+    "pnl": 38.89,
+    "pnl_pct": 4.8,
+    "shares": 4,
+    "symbol": "AAPL",
+    "win": true
+  },
+  {
+    "entry_date": "2026-01-28",
+    "entry_price": 255.74,
+    "exit_date": "2026-02-13",
+    "exit_price": 255.32,
+    "exit_reason": "MACD Cross",
+    "pnl": -1.26,
+    "pnl_pct": -0.2,
+    "shares": 3,
+    "symbol": "AAPL",
+    "win": false
+  },
+  {
+    "entry_date": "2026-03-31",
+    "entry_price": 253.34,
+    "exit_date": "2026-05-08",
+    "exit_price": 292.8,
+    "exit_reason": "RSI Overbought",
+    "pnl": 118.38,
+    "pnl_pct": 15.6,
+    "shares": 3,
+    "symbol": "AAPL",
+    "win": true
+  }
+]

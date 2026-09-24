@@ -180,10 +180,45 @@ the clear. Documented at the top of [`auth.py`](auth.py).
 source of historical OHLCV; `tradingview-ta` scrapes TradingView. Fine for
 personal use, a real ToS question for anything commercial.
 
-**No automated test suite is committed yet.** The regression suite is the
-first item in the migration plan.
-
 **It never places trades.** APEX is an analysis tool.
+
+---
+
+## Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+134 tests, **fully offline and deterministic** — they read frozen OHLCV from
+`tests/fixtures/` rather than calling any API, so they produce identical
+numbers on any machine and run in CI without network.
+
+| File | Tests | Covers |
+|---|---:|---|
+| `test_indicators.py` | 27 | Indicator math, golden snapshots, stop/target levels |
+| `test_backtest.py` | 17 | Strategy output, consistency, look-ahead safety |
+| `test_ml.py` | 21 | Validation integrity, label-leakage, determinism |
+| `test_accounts.py` | 27 | Password hashing, per-user isolation |
+| `test_scanner_search.py` | 36 | Opportunity scoring, symbol search |
+| `test_app_render.py` | 6 | Auth gate, both themes |
+
+**Golden snapshots** pin the exact numbers the analysis engine produces
+today, so any numeric drift during the Next.js migration fails the build.
+Verified by injecting a deliberate regression — changing the RSI window from
+14 to 15 failed 6 tests across 4 modules.
+
+Regenerate snapshots only after reviewing the diff:
+
+```bash
+APEX_UPDATE_GOLDEN=1 pytest
+```
+
+Many tests are regression guards for specific bugs found in QA: NaN
+indicators scored as bearish, risk/reward hardcoded to 2.0, a zero price
+producing `+inf` estimated moves, ATR rounding to zero on penny stocks, and
+label leakage at walk-forward fold boundaries.
 
 ---
 

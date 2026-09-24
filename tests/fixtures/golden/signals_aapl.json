@@ -1,0 +1,31 @@
+{
+  "overall_score": 60,
+  "signal_count": 5,
+  "signals": {
+    "bb": {
+      "label": "Mid-range",
+      "score": 3,
+      "value": 76.4
+    },
+    "ma": {
+      "label": "Price above 50 & 200 MA \u2014 bullish",
+      "score": 5,
+      "value": ">$321.60"
+    },
+    "macd": {
+      "label": "Bullish but weakening",
+      "score": 3,
+      "value": 0.8698
+    },
+    "rsi": {
+      "label": "Getting extended",
+      "score": 2,
+      "value": 62.87
+    },
+    "volume": {
+      "label": "Normal volume",
+      "score": 2,
+      "value": 0.4
+    }
+  }
+}

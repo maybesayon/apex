@@ -142,19 +142,34 @@ In-process caches (`ml_predictions._model_cache`, `tradingview._rating_cache`,
 multiple processes. Correctness is unaffected — they are pure read caches with
 TTLs — but hit rates drop. Move to Redis opportunistically, not urgently.
 
-### 1.7 Testing — the real situation
+### 1.7 Testing — resolved in Phase 0
 
-**There is no test suite in the repository.** No `test_*.py`, no `tests/`,
-no `pytest.ini`, no `conftest.py`.
+At inspection time there was **no test suite in the repository**, which made
+the spec's "run the existing tests" instruction impossible to satisfy and
+left Phase 2's contract tests with no baseline to compare against.
 
-The 35-test acceptance suite I ran lives in a scratchpad directory outside
-the project and is not version-controlled. The spec's instruction to "run the
-existing tests" and "do not destroy the existing testing setup" has nothing to
-act on.
+**Phase 0 has since closed this.** `tests/` now holds 134 offline,
+deterministic tests with golden-output snapshots:
 
-**This is the highest-priority pre-migration task.** Contract tests in Phase 2
-are meaningless without a committed baseline of current behavior to compare
-against. Committing that suite is step one.
+| File | Tests | Covers |
+|---|---:|---|
+| `test_indicators.py` | 27 | Indicator math, golden snapshots, stop/target |
+| `test_backtest.py` | 17 | Strategy output, consistency, look-ahead safety |
+| `test_ml.py` | 21 | Validation integrity, label leakage, determinism |
+| `test_accounts.py` | 27 | Password hashing, per-user isolation |
+| `test_scanner_search.py` | 36 | Opportunity scoring, symbol search |
+| `test_app_render.py` | 6 | Auth gate, both themes |
+
+Properties that matter for the migration:
+
+- **No network.** Verified by running the whole suite with `socket.connect`,
+  `create_connection` and `getaddrinfo` patched to raise. All 134 pass.
+- **Deterministic.** Frozen OHLCV in `tests/fixtures/`; repeated runs are
+  byte-identical.
+- **Detects drift.** Verified by injecting a regression — changing the RSI
+  window from 14 to 15 failed 6 golden tests across 4 modules.
+
+This is the baseline Phase 2 contract tests compare against.
 
 ### 1.8 Incidental cleanup found
 
@@ -240,7 +255,7 @@ Both move before the bulk screen migration.
 
 | Phase | Work | Exit criteria |
 |---|---|---|
-| **0** | **Commit the regression suite.** Move the 35-test acceptance suite into `backend/tests/`, add golden-output snapshots for `score_opportunity`, `calculate_all`, `backtest_momentum_strategy`, `predict_direction` on fixed CSV fixtures | `pytest` green; deterministic without network |
+| **0** | Commit the regression suite with golden snapshots on fixed fixtures | ✅ **complete** — 134 tests, offline, deterministic, drift-detecting |
 | **1** | *(this document)* | ✅ complete |
 | **2** | FastAPI boundary. Pydantic schemas, routers, OpenAPI. Fold `tv_webhook.py` in. Move SMTP creds to env. **Contract tests assert API output equals direct function output** | Every existing feature reachable over HTTP; contract tests green |
 | **3** | Auth rework — JWT in httpOnly cookies, refresh rotation, CSRF. Postgres migration (SQLAlchemy + Alembic) | Login works over API; sessions survive restart; isolation tests still green |
@@ -261,7 +276,7 @@ First user-visible change is Phase 5.
 
 | Risk | Severity | Mitigation |
 |---|---|---|
-| No regression baseline exists | **High** | Phase 0 exists solely for this. Do not skip |
+| ~~No regression baseline exists~~ | ~~High~~ | ✅ Resolved in Phase 0 — 134 offline tests with golden snapshots |
 | Historical data depends entirely on an unofficial scraper | **High** | Isolated to one function; swap is contained. Revisit post-migration per decision 3 |
 | Silent numeric drift during port | **High** | Contract tests compare API output to direct calls on fixed fixtures |
 | SQLite on ephemeral storage loses all accounts | **High** | Postgres in Phase 3, before any real users |
