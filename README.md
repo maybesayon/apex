@@ -91,10 +91,49 @@ Optional keys in `.env` (copy from `.env.example`):
 
 ---
 
+## API
+
+A FastAPI layer exposes the analysis engine over HTTP. It runs alongside
+Streamlit — both import the same modules, so there is one implementation of
+every calculation.
+
+```bash
+uvicorn api.main:app --reload --port 8000
+```
+
+Interactive docs at `/docs`, OpenAPI schema at `/openapi.json`.
+31 operations:
+
+| Area | Endpoints |
+|---|---|
+| Auth | `POST /auth/register` · `/auth/login` · `/auth/logout` · `GET /auth/me` |
+| Market | `GET /search` · `/quotes` · `/stocks/{sym}/quote` · `/history` · `/profile` |
+| Analysis | `GET /stocks/{sym}/analysis` · `/opportunity` · `/forecast` · `/rating` |
+| Portfolio | `GET /portfolio` · `PUT/DELETE /portfolio/positions` |
+| Watchlist | `GET/POST /watchlist` · `DELETE /watchlist/{sym}` |
+| Journal | `GET/POST /journal` · `GET /journal/stats` |
+| Operations | `POST /backtest` · `POST /scan` · `POST /chat` |
+| Webhooks | `POST /webhooks/tradingview` · `GET/DELETE /alerts` |
+
+Symbol paths accept company names, so `/stocks/apple/analysis` and
+`/stocks/AAPL/analysis` are equivalent.
+
+**Contract tests** assert the HTTP response equals a direct function call, so
+the API layer cannot silently change a number. NaN and Infinity — which
+indicators legitimately produce and JSON cannot represent — are serialised as
+`null` rather than emitted as invalid JSON.
+
+`POST /scan` is synchronous and marked deprecated on arrival: it takes ~46s
+for the broad scope, past most proxy and serverless timeouts. It moves behind
+a job queue in Phase 4.
+
+---
+
 ## Architecture
 
-~4,100 lines across 17 modules. The analysis engine is pure Python with no
-framework dependency — it neither imports nor knows about Streamlit.
+~4,100 lines of analysis code across 17 modules, plus the API layer. The
+analysis engine is pure Python with no framework dependency — it neither
+imports nor knows about Streamlit or FastAPI.
 
 ```
 Data        prices.py       Finnhub → yfinance fallback
@@ -114,6 +153,7 @@ Integration tradingview.py  widgets, technical ratings, alert storage
             chat.py         Claude assistant with offline fallback
             alerts.py       email alerts
 
+API         api/            FastAPI boundary: routers, schemas, auth
 UI          app.py          Streamlit (being replaced — see MIGRATION_PLAN.md)
 ```
 
@@ -149,12 +189,12 @@ from the unofficial `tradingview-ta` library and are display-only.
 **Alert webhooks** need a paid TradingView plan:
 
 ```bash
-python tv_webhook.py      # receiver on :5001
-ngrok http 5001           # expose it
+uvicorn api.main:app --port 8000
+ngrok http 8000
 ```
 
 Point a TradingView alert at
-`https://<ngrok-url>/webhook/tradingview?secret=<your-secret>` with body:
+`https://<ngrok-url>/webhooks/tradingview?secret=<your-secret>` with body:
 
 ```json
 {"symbol": "{{ticker}}", "price": {{close}}, "event": "RSI oversold", "interval": "{{interval}}"}
@@ -191,7 +231,7 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-134 tests, **fully offline and deterministic** — they read frozen OHLCV from
+169 tests, **fully offline and deterministic** — they read frozen OHLCV from
 `tests/fixtures/` rather than calling any API, so they produce identical
 numbers on any machine and run in CI without network.
 
@@ -203,6 +243,7 @@ numbers on any machine and run in CI without network.
 | `test_accounts.py` | 27 | Password hashing, per-user isolation |
 | `test_scanner_search.py` | 36 | Opportunity scoring, symbol search |
 | `test_app_render.py` | 6 | Auth gate, both themes |
+| `test_api_contract.py` | 35 | HTTP output equals direct calls, access control |
 
 **Golden snapshots** pin the exact numbers the analysis engine produces
 today, so any numeric drift during the Next.js migration fails the build.

@@ -1,0 +1,56 @@
+{
+  "indicators": {
+    "atr": 6.960466,
+    "bb_lower": 311.4,
+    "bb_mid": 328.12,
+    "bb_upper": 344.85,
+    "ema21": 328.91,
+    "ema9": 334.93,
+    "ma20": 328.12,
+    "ma200": 287.07,
+    "ma50": 321.6,
+    "macd": 6.1219,
+    "macd_hist": 0.8698,
+    "macd_signal": 5.2521,
+    "rsi": 62.87,
+    "stoch_d": 79.04,
+    "stoch_k": 76.38,
+    "vol_ratio": 0.4
+  },
+  "levels": {
+    "entry": 336.970001,
+    "reward": 84.24,
+    "risk": 13.92,
+    "risk_reward": 6.1,
+    "stop": 323.05,
+    "target": 421.21
+  },
+  "overall_score": 60,
+  "signals": {
+    "bb": {
+      "label": "Mid-range",
+      "score": 3,
+      "value": 76.4
+    },
+    "ma": {
+      "label": "Price above 50 & 200 MA \u2014 bullish",
+      "score": 5,
+      "value": ">$321.60"
+    },
+    "macd": {
+      "label": "Bullish but weakening",
+      "score": 3,
+      "value": 0.8698
+    },
+    "rsi": {
+      "label": "Getting extended",
+      "score": 2,
+      "value": 62.87
+    },
+    "volume": {
+      "label": "Normal volume",
+      "score": 2,
+      "value": 0.4
+    }
+  }
+}

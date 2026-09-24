@@ -1,58 +1,37 @@
 # ─────────────────────────────────────────────
-#  tv_webhook.py — TradingView Alert Webhook Receiver
-#  Run alongside the Streamlit app:
-#      python tv_webhook.py
+#  tv_webhook.py — DEPRECATED
 #
-#  Then point TradingView alerts (paid plan required) at:
-#      https://<your-public-url>/webhook/tradingview?secret=<TV_WEBHOOK_SECRET>
+#  This standalone Flask service has been folded into the FastAPI app.
+#  The endpoint now lives at:
 #
-#  For local testing, expose the port with e.g.:
-#      ngrok http 5001
+#      POST /webhooks/tradingview        (api/routers/webhooks.py)
 #
-#  Recommended alert message body (TradingView alert dialog):
-#  {"symbol": "{{ticker}}", "price": {{close}}, "event": "Your alert name", "interval": "{{interval}}"}
+#  Running one service instead of two means one process to deploy, one
+#  place to configure TLS, and one auth story. Flask is no longer a
+#  dependency.
+#
+#  Point TradingView at:
+#      https://<your-host>/webhooks/tradingview?secret=<TV_WEBHOOK_SECRET>
+#
+#  Start the API with:
+#      uvicorn api.main:app --port 8000
+#
+#  This shim remains only so an existing deployment fails loudly with
+#  instructions rather than silently serving a stale copy. It will be
+#  deleted when Streamlit is retired in Phase 10.
 # ─────────────────────────────────────────────
 
-from flask import Flask, jsonify, request
+import sys
 
-from alerts import send_email_alert
-from config import TV_WEBHOOK_PORT, TV_WEBHOOK_SECRET
-from tradingview import save_tv_alert
+MESSAGE = """
+tv_webhook.py has been replaced by the FastAPI application.
 
-app = Flask(__name__)
+  Run instead:   uvicorn api.main:app --port 8000
+  New endpoint:  POST /webhooks/tradingview?secret=<TV_WEBHOOK_SECRET>
 
-
-@app.post("/webhook/tradingview")
-def tradingview_webhook():
-    payload = request.get_json(silent=True)
-    if payload is None:
-        # TradingView sends plain text unless the alert message is valid JSON
-        payload = {"message": request.get_data(as_text=True).strip()}
-
-    # Secret via ?secret= query param or a "secret" field in the JSON payload
-    if TV_WEBHOOK_SECRET:
-        provided = request.args.get("secret") or payload.pop("secret", None)
-        if provided != TV_WEBHOOK_SECRET:
-            return jsonify({"error": "invalid secret"}), 403
-
-    save_tv_alert(payload)
-
-    # Forward by email if email alerts are configured (no-op otherwise)
-    symbol = payload.get("symbol", "?")
-    event = payload.get("event") or payload.get("message", "TradingView alert")
-    body = "\n".join(f"{k}: {v}" for k, v in payload.items())
-    send_email_alert(f"📺 TradingView Alert: {symbol} — {event}", body)
-
-    return jsonify({"status": "ok"})
-
-
-@app.get("/health")
-def health():
-    return jsonify({"status": "ok"})
-
+Update the Webhook URL in your TradingView alert to point at the new path.
+"""
 
 if __name__ == "__main__":
-    print(f"APEX TradingView webhook listening on port {TV_WEBHOOK_PORT}")
-    if not TV_WEBHOOK_SECRET:
-        print("WARNING: TRADINGVIEW_WEBHOOK_SECRET not set — webhook is unauthenticated.")
-    app.run(host="0.0.0.0", port=TV_WEBHOOK_PORT)
+    print(MESSAGE, file=sys.stderr)
+    sys.exit(1)
