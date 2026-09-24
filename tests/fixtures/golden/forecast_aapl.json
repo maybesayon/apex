@@ -1,0 +1,21 @@
+{
+  "baseline_accuracy": 76.1,
+  "confidence": 76.1,
+  "direction": "BEARISH",
+  "fold_accuracies": [
+    65.3,
+    62.5,
+    83.3,
+    72.2,
+    63.9
+  ],
+  "horizon": "10 days",
+  "model_accuracy": 69.4,
+  "probability_down": 76.1,
+  "probability_up": 23.9,
+  "top_factors": [
+    "volatility_10d",
+    "atr_pct",
+    "rsi"
+  ]
+}
