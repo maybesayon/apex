@@ -1,137 +1,208 @@
-# ⚡ APEX — Trading Intelligence (Python Edition)
+# APEX
 
-A professional-grade trading assistant built with Python + Streamlit.
+A stock analysis platform: technical analysis, strategy backtesting, and a
+price-direction model that reports honestly on whether it works.
+
+Python · Streamlit · scikit-learn · pandas · SQLite
 
 ---
 
-## 🚀 Setup (5 minutes)
+## What it does
 
-### Step 1 — Install Python
-Make sure you have Python 3.10+ installed.
-Download from: https://python.org
+Multi-user accounts, each with their own watchlist, holdings and trade
+journal. Seven screens:
 
-### Step 2 — Install dependencies
-Open a terminal in this folder and run:
+| Screen | What it does |
+|---|---|
+| **Overview** | Market condition, opportunity cards with entry/target/stop, portfolio value |
+| **Analysis** | RSI, MACD, Bollinger Bands, moving averages, volume — charted, with a signal score |
+| **Charts** | Embedded TradingView charts, technical-rating gauge, alert feed |
+| **Backtest** | RSI + MACD momentum strategy over 2 years, with equity curve and trade log |
+| **Forecast** | Gradient-boosting model predicting a >5% move over 10 trading days |
+| **Journal** | Log trades; win rate and realised P&L computed from what you log |
+| **Assistant** | Claude-backed chat with live quote context, or an offline analyzer without a key |
+
+---
+
+## The part worth reading
+
+If you only look at one thing in this repo, make it
+[`ml_predictions.py`](ml_predictions.py).
+
+**Financial time series break the usual train/test split.** Shuffling lets a
+model train on October and test on August — it sees the future, and accuracy
+comes back inflated. So validation here uses expanding-window walk-forward
+splits: every fold trains only on data preceding its test slice.
+
+That alone is still not enough. The label at row *i* is built from the price
+at *i + 10*, so the last 10 training rows of each fold carry labels computed
+from prices inside the test window. Ten leaked rows at every fold boundary.
+The fix is an embargo — drop those rows before fitting:
+
+```python
+train_idx = train_idx[train_idx < test_idx[0] - PREDICT_HORIZON_DAYS]
 ```
+
+Accuracy is then reported next to the **majority-class baseline**, because
+60% accuracy means nothing if 60% of windows are one-sided. Probabilities are
+calibrated with Platt scaling, since raw gradient-boosting scores are not
+probabilities.
+
+**The result, measured across ten large-cap tickers (2026-09-24):**
+
+```
+mean walk-forward accuracy   63.3%
+majority-class baseline      70.3%
+                             −7.0 points — lost on 10 of 10
+```
+
+The model does not beat "always guess no." The app says so directly — the
+Forecast screen leads with a **"No demonstrated skill"** banner and shows the
+baseline as a first-class metric whenever the model fails to clear it.
+
+That negative result is the point. A shuffled split would have reported
+something in the eighties and it would have been believed. The measurement is
+supposed to be true, not flattering.
+
+---
+
+## Quick start
+
+Runs with **no API keys at all**.
+
+```bash
+git clone https://github.com/maybesayon/apex.git
+cd apex
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-```
-
-### Step 3 — Add your API keys (optional)
-Copy the example env file and edit it:
-```
-cp .env.example .env
-```
-
-- `FINNHUB_API_KEY` — optional; if unset, live quotes fall back to **yfinance** (no Finnhub signup required).
-- `ANTHROPIC_API_KEY` — optional; if unset, **Chat** uses an offline assistant (scanner + indicators + your live quote context). Add a key later for full Claude replies.
-
-### Step 4 — Run APEX
-```
 streamlit run app.py
 ```
 
-Your browser will open automatically at http://localhost:8501
+Opens at `http://localhost:8501`. Create an account on first launch — your
+watchlist, holdings and journal are stored locally in `apex.db`.
+
+Optional keys in `.env` (copy from `.env.example`):
+
+| Key | Without it |
+|---|---|
+| `FINNHUB_API_KEY` | Quotes fall back to yfinance |
+| `ANTHROPIC_API_KEY` | Assistant uses a built-in offline analyzer |
+| `TRADINGVIEW_WEBHOOK_SECRET` | Alert webhook runs unauthenticated (don't expose it) |
 
 ---
 
-## 📁 File Structure
+## Architecture
+
+~4,100 lines across 17 modules. The analysis engine is pure Python with no
+framework dependency — it neither imports nor knows about Streamlit.
 
 ```
-apex/
-├── app.py              ← Main Streamlit app (run this)
-├── config.py           ← API keys, portfolio, settings
-├── prices.py           ← Live prices via Finnhub + yfinance
-├── indicators.py       ← Technical analysis (RSI, MACD, MAs, etc.)
-├── scanner.py          ← Opportunity scanner
-├── backtest.py         ← Strategy backtesting engine
-├── ml_predictions.py   ← ML price direction predictions
-├── chat.py             ← Claude AI chat integration
-├── alerts.py           ← Email alert system
-├── tradingview.py      ← TradingView widgets, ratings, alert storage
-├── tv_webhook.py       ← TradingView alert webhook receiver (run separately)
-└── requirements.txt    ← Python dependencies
+Data        prices.py       Finnhub → yfinance fallback
+            symbols.py      518-symbol search index (ticker + company name)
+            universe.py     S&P 500 constituents, cached 7 days on disk
+
+Analysis    indicators.py   RSI, MACD, Bollinger, ATR, stochastic, signal scoring
+            scanner.py      opportunity scoring, two-stage S&P 500 scan
+            backtest.py     momentum strategy, equity curve, trade log
+            ml_predictions.py  walk-forward validated gradient boosting
+
+Platform    db.py           per-user positions, watchlist, journal (SQLite)
+            auth.py         scrypt password hashing, timing-safe compare
+            theme.py        light/dark design system
+
+Integration tradingview.py  widgets, technical ratings, alert storage
+            chat.py         Claude assistant with offline fallback
+            alerts.py       email alerts
+
+UI          app.py          Streamlit (being replaced — see MIGRATION_PLAN.md)
 ```
+
+### Design decisions
+
+**Every external dependency degrades gracefully.** Quotes try Finnhub then
+yfinance. The assistant uses Claude if keyed, otherwise a local analyzer.
+TradingView ratings return `None` rather than raising when the unofficial
+library breaks. The S&P list falls back from Wikipedia to a stale cache to a
+hardcoded universe. `pip install && streamlit run` works with zero
+configuration.
+
+**The broad scan is two-stage.** Running full technical analysis on 500
+tickers is slow and hammers the API. A cheap batched pre-filter drops anything
+under $3 or under $5M average daily dollar volume, then only the ~40 liveliest
+names get the expensive pass. Measured: 10s pre-filter, ~46s total.
+
+**Cache TTLs are reasoned, not guessed.** Trained models cache for an hour
+because daily bars only update once a day. Prices 30s, TradingView ratings
+5min, index constituents 7 days.
+
+**Search accepts company names.** `symbols.py` ranks matches — exact ticker,
+then ticker prefix, then name — so "apple" finds AAPL and "micro" finds MU,
+MCHP, MSFT and AMD.
 
 ---
 
-## 📺 TradingView Integration
+## TradingView integration
 
-APEX integrates with TradingView three ways:
+**Charts and ratings** work out of the box, no account needed. Ratings come
+from the unofficial `tradingview-ta` library and are display-only.
 
-**1. Embedded charts (free, works out of the box)**
-The **📺 TradingView** tab embeds the full interactive TradingView chart,
-technical-analysis gauge, and a watchlist ticker tape. No account needed.
+**Alert webhooks** need a paid TradingView plan:
 
-**2. Technical ratings (free, unofficial)**
-TradingView's Buy/Sell/Neutral ratings appear in the Analysis tab, the
-TradingView tab, and as scanner tags (e.g. `TV Strong Buy`). Uses the
-unofficial `tradingview-ta` library — display only, and may occasionally
-break if TradingView changes their internals.
-
-**3. Alert webhooks (requires a paid TradingView plan)**
-Receive your TradingView alerts inside APEX (and by email, if configured):
-
-```
-# Terminal 1 — the app
-streamlit run app.py
-
-# Terminal 2 — the webhook receiver
-python tv_webhook.py
-
-# Terminal 3 — expose it to the internet
-ngrok http 5001
+```bash
+python tv_webhook.py      # receiver on :5001
+ngrok http 5001           # expose it
 ```
 
-Add a secret to your `.env`:
-```
-TRADINGVIEW_WEBHOOK_SECRET=pick-a-random-string
-```
+Point a TradingView alert at
+`https://<ngrok-url>/webhook/tradingview?secret=<your-secret>` with body:
 
-In TradingView, create an alert with **Webhook URL** set to
-`https://<your-ngrok-url>/webhook/tradingview?secret=<your-secret>`
-and this alert message:
 ```json
 {"symbol": "{{ticker}}", "price": {{close}}, "event": "RSI oversold", "interval": "{{interval}}"}
 ```
 
-Alerts are stored in `tv_alerts.json` and shown in the 📺 TradingView tab.
+---
+
+## Known limitations
+
+Stated plainly, because they affect how much you should trust the output.
+
+**Backtest is optimistic.** It transacts at the same closing price that
+generated the signal, models no commissions or slippage, checks stops only
+against daily closes (so intraday stop-outs are missed), and allocates full
+capital to one position at a time.
+
+**Auth is private-beta grade.** No email verification, no password reset, no
+rate limiting or lockout. Sessions live in server memory. SQLite suits one
+instance, not a scaled one. Serve over HTTPS or credentials cross the wire in
+the clear. Documented at the top of [`auth.py`](auth.py).
+
+**Two data sources are unofficial.** `yfinance` scrapes Yahoo and is the sole
+source of historical OHLCV; `tradingview-ta` scrapes TradingView. Fine for
+personal use, a real ToS question for anything commercial.
+
+**No automated test suite is committed yet.** The regression suite is the
+first item in the migration plan.
+
+**It never places trades.** APEX is an analysis tool.
 
 ---
 
-## 🎯 Features
+## Roadmap
 
-| Feature | Description |
-|---------|-------------|
-| 📊 Dashboard | Live opportunity cards with confidence scores, entry/target/stop |
-| 🔬 Analysis | Full technical analysis — RSI, MACD, Bollinger Bands, MAs |
-| 📈 Backtest | Test momentum strategy on 2 years of historical data |
-| 🤖 ML Predict | Gradient Boosting model predicts 10-day price direction |
-| 📓 Journal | Log and track every trade, see patterns in your behavior |
-| 💬 Chat | Full AI trading assistant with graphical stock cards |
-| 🔔 Alerts | Email alerts for high-confidence opportunities |
-| 💰 Portfolio | Live P&L tracking with real Finnhub prices |
+[`MIGRATION_PLAN.md`](MIGRATION_PLAN.md) documents a phased migration of the
+presentation layer to Next.js + TypeScript + FastAPI, keeping the Python
+analysis engine intact. It includes a full inspection of the current
+architecture, measured latencies, a provider-dependency audit, and a
+risk register.
+
+Also planned: fundamentals (P/E, EPS, revenue, earnings) and news, both of
+which are genuinely absent today rather than partially built.
 
 ---
 
-## ⚙️ Customization
+## Disclaimer
 
-**Add stocks to your watchlist** — edit `WATCHLIST` in `config.py`
-
-**Change portfolio positions** — edit `PORTFOLIO` in `config.py`
-
-**Set up email alerts** — add Gmail credentials to `config.py`:
-```python
-ALERT_EMAIL_FROM = "youremail@gmail.com"
-ALERT_EMAIL_TO   = "youremail@gmail.com"
-ALERT_EMAIL_PASS = "your_app_password"  # Gmail app password
-```
-Note: Use Gmail App Password, not your regular password.
-Create one at: https://myaccount.google.com/apppasswords
-
----
-
-## ⚠️ Disclaimer
-
-This tool is for educational purposes only.
-Not financial advice. Always do your own research before investing.
-Past performance does not guarantee future results.
+Educational project. Not financial advice, and not a recommendation to buy or
+sell anything. Backtest and model results are simulations over historical
+data — past performance does not guarantee future results. Do your own
+research.
