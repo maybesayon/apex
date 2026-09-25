@@ -50,29 +50,6 @@ function useTradingViewWidget(
   return container;
 }
 
-/** The scrolling strip of prices across the top of every page. */
-export function TickerTape({ symbols }: { symbols: string[] }) {
-  const ref = useTradingViewWidget(
-    "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js",
-    {
-      symbols: symbols.map((s) => ({ proName: s, title: s })),
-      showSymbolLogo: true,
-      isTransparent: true,
-      displayMode: "adaptive",
-      locale: "en",
-    },
-    [symbols.join(",")],
-  );
-
-  return (
-    <div
-      className="tradingview-widget-container -mx-4 mb-4 border-b border-line md:-mx-8"
-      ref={ref}
-      style={{ height: 50 }}
-    />
-  );
-}
-
 /** Full interactive price chart — the Charts tab in Streamlit. */
 export function AdvancedChart({
   symbol,
@@ -141,7 +118,10 @@ export function TechnicalGauge({
       interval: "1D",
       width: "100%",
       height,
-      isTransparent: true,
+      // isTransparent paints no background, and the widget then shows a
+      // white page beneath while using pale dark-theme text. Let it paint
+      // its own themed background instead.
+      isTransparent: false,
       symbol,
       showIntervalTabs: true,
       displayMode: "single",
