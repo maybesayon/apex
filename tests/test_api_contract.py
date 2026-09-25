@@ -18,20 +18,34 @@ from api.serialization import to_jsonable
 @pytest.fixture
 def client(temp_db, offline):
     from api.main import app
-    from api import security
 
-    security._tokens.clear()
     with TestClient(app) as c:
         yield c
 
 
+def sign_in(client, username="contract", password="contract-pass-1"):
+    """
+    Register and return the session body. TestClient keeps the httpOnly
+    cookies automatically, so afterwards the client is authenticated the
+    same way a browser would be.
+    """
+    r = client.post("/auth/register", json={"username": username, "password": password})
+    assert r.status_code == 201, r.text
+    body = r.json()
+    # Echo the CSRF cookie in the header, as a browser client must.
+    client.headers[security_csrf_header()] = body["csrf_token"]
+    return body
+
+
+def security_csrf_header() -> str:
+    from api import security
+    return security.CSRF_HEADER
+
+
 @pytest.fixture
 def auth_client(client):
-    """A signed-in client, with the token applied to every request."""
-    r = client.post("/auth/register",
-                    json={"username": "contract", "password": "contract-pass-1"})
-    assert r.status_code == 201, r.text
-    client.headers["Authorization"] = f"Bearer {r.json()['access_token']}"
+    """A signed-in client using cookie auth plus the CSRF header."""
+    sign_in(client)
     return client
 
 
@@ -121,11 +135,21 @@ def test_invalid_token_rejected(client):
     assert r.status_code == 401
 
 
-def test_login_returns_token(client):
+def test_login_sets_httponly_cookies(client):
     client.post("/auth/register", json={"username": "loginuser", "password": "login-pass-1"})
     r = client.post("/auth/login", json={"username": "loginuser", "password": "login-pass-1"})
     assert r.status_code == 200
-    assert r.json()["token_type"] == "bearer"
+
+    from api import security
+    raw = "; ".join(r.headers.get_list("set-cookie"))
+    assert security.ACCESS_COOKIE in raw and security.REFRESH_COOKIE in raw
+    # Access and refresh must be httpOnly so page JavaScript cannot read
+    # them; the CSRF cookie must NOT be, because the client echoes it.
+    for line in r.headers.get_list("set-cookie"):
+        if line.startswith(security.CSRF_COOKIE):
+            assert "HttpOnly" not in line
+        else:
+            assert "HttpOnly" in line
 
 
 def test_wrong_password_rejected(client):
@@ -153,7 +177,7 @@ def test_weak_password_rejected(client):
     assert r.status_code == 422        # caught by the Pydantic min_length
 
 
-def test_logout_invalidates_token(auth_client):
+def test_logout_clears_session(auth_client):
     assert auth_client.get("/auth/me").status_code == 200
     assert auth_client.post("/auth/logout").status_code == 204
     assert auth_client.get("/auth/me").status_code == 401

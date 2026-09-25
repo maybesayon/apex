@@ -148,7 +148,7 @@ At inspection time there was **no test suite in the repository**, which made
 the spec's "run the existing tests" instruction impossible to satisfy and
 left Phase 2's contract tests with no baseline to compare against.
 
-**Phase 0 has since closed this.** `tests/` now holds 134 offline,
+**Phase 0 has since closed this.** `tests/` now holds 190 offline,
 deterministic tests with golden-output snapshots:
 
 | File | Tests | Covers |
@@ -159,6 +159,8 @@ deterministic tests with golden-output snapshots:
 | `test_accounts.py` | 27 | Password hashing, per-user isolation |
 | `test_scanner_search.py` | 36 | Opportunity scoring, symbol search |
 | `test_app_render.py` | 6 | Auth gate, both themes |
+| `test_api_contract.py` | 35 | HTTP output equals direct calls, access control |
+| `test_auth_session.py` | 21 | JWT, refresh rotation, CSRF, restart survival |
 
 Properties that matter for the migration:
 
@@ -263,7 +265,7 @@ Both move before the bulk screen migration.
 | **0** | Commit the regression suite with golden snapshots on fixed fixtures | ✅ **complete** — 134 tests, offline, deterministic, drift-detecting |
 | **1** | *(this document)* | ✅ complete |
 | **2** | FastAPI boundary, contract tests, fold in `tv_webhook.py`, SMTP creds to env | ✅ **complete** — 31 operations, 35 contract tests, Flask removed |
-| **3** | Auth rework — JWT in httpOnly cookies, refresh rotation, CSRF. Postgres migration (SQLAlchemy + Alembic) | Login works over API; sessions survive restart; isolation tests still green |
+| **3** | Auth rework (JWT, httpOnly cookies, refresh rotation, CSRF) and SQLAlchemy + Alembic | ✅ **complete** — sessions survive restart, reuse detection, Postgres-portable |
 | **4** | Job system — Redis + RQ, `/jobs/*`, progress reporting in scan loop | Broad scan runs async with live progress; failures/timeouts surface |
 | **5** | Next.js foundation — App Router, TypeScript, Tailwind with tokens ported from `theme.py`, shadcn/ui, theme provider, AppShell, generated API types | Both themes render; type-safe client; auth flow works |
 | **6** | **Stock detail screen** (`/stocks/[ticker]`) — Lightweight Charts, indicators, TV rating, watchlist action, Framer Motion | Visually matches current Analysis tab's data exactly |
@@ -284,7 +286,7 @@ First user-visible change is Phase 5.
 | ~~No regression baseline exists~~ | ~~High~~ | ✅ Resolved in Phase 0 — 134 offline tests with golden snapshots |
 | Historical data depends entirely on an unofficial scraper | **High** | Isolated to one function; swap is contained. Revisit post-migration per decision 3 |
 | ~~Silent numeric drift during port~~ | ~~High~~ | ✅ Resolved in Phase 2 — 35 contract tests assert API output equals direct calls |
-| SQLite on ephemeral storage loses all accounts | **High** | Postgres in Phase 3, before any real users |
+| SQLite on ephemeral storage loses all accounts | **High** | ⚠️ Partly resolved — the code is Postgres-portable via `DATABASE_URL`, but Postgres itself is **untested** (no server available locally) and is still the default-off path |
 | Ops surface grows 1 → 5 processes | Medium | `docker-compose` for local; single PaaS with managed Redis/Postgres |
 | Lightweight Charts has no built-in indicator overlays | Medium | Bollinger/MA are extra line series; RSI is a second pane. Both supported |
 | Scan cost grows past 46s | Medium | Already async after Phase 4; add concurrency inside the worker |

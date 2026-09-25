@@ -23,3 +23,7 @@ tv_alerts.json
 .claude/
 .vscode/
 .idea/
+
+# Locally generated dev signing key — never commit
+.apex_dev_secret
+migrations/versions/__pycache__/

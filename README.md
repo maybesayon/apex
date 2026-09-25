@@ -3,7 +3,7 @@
 A stock analysis platform: technical analysis, strategy backtesting, and a
 price-direction model that reports honestly on whether it works.
 
-Python · Streamlit · scikit-learn · pandas · SQLite
+Python · FastAPI · Streamlit · scikit-learn · pandas · SQLAlchemy
 
 ---
 
@@ -211,10 +211,16 @@ generated the signal, models no commissions or slippage, checks stops only
 against daily closes (so intraday stop-outs are missed), and allocates full
 capital to one position at a time.
 
-**Auth is private-beta grade.** No email verification, no password reset, no
-rate limiting or lockout. Sessions live in server memory. SQLite suits one
-instance, not a scaled one. Serve over HTTPS or credentials cross the wire in
-the clear. Documented at the top of [`auth.py`](auth.py).
+**Auth has real session handling but is not finished.** Access tokens are
+short-lived JWTs in httpOnly cookies; refresh tokens are hashed in the
+database, rotated on every use, and a replayed token revokes its whole
+family. Sessions survive a restart. Still missing: email verification,
+password reset, and rate limiting or lockout on login. Serve over HTTPS.
+
+**Postgres support is untested.** The storage layer is SQLAlchemy and
+switches with one environment variable, and every table compiles for the
+Postgres dialect — but no Postgres server was available to run it against,
+so treat that path as unverified until someone does.
 
 **Two data sources are unofficial.** `yfinance` scrapes Yahoo and is the sole
 source of historical OHLCV; `tradingview-ta` scrapes TradingView. Fine for
@@ -231,7 +237,7 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-169 tests, **fully offline and deterministic** — they read frozen OHLCV from
+190 tests, **fully offline and deterministic** — they read frozen OHLCV from
 `tests/fixtures/` rather than calling any API, so they produce identical
 numbers on any machine and run in CI without network.
 
@@ -244,6 +250,7 @@ numbers on any machine and run in CI without network.
 | `test_scanner_search.py` | 36 | Opportunity scoring, symbol search |
 | `test_app_render.py` | 6 | Auth gate, both themes |
 | `test_api_contract.py` | 35 | HTTP output equals direct calls, access control |
+| `test_auth_session.py` | 21 | JWT, refresh rotation, CSRF, restart survival |
 
 **Golden snapshots** pin the exact numbers the analysis engine produces
 today, so any numeric drift during the Next.js migration fails the build.
