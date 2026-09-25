@@ -286,7 +286,7 @@ Both move before the bulk screen migration.
 | **2** | FastAPI boundary, contract tests, fold in `tv_webhook.py`, SMTP creds to env | ✅ **complete** — 31 operations, 35 contract tests, Flask removed |
 | **3** | Auth rework (JWT, httpOnly cookies, refresh rotation, CSRF) and SQLAlchemy + Alembic | ✅ **complete** — sessions survive restart, reuse detection, Postgres-portable |
 | **4** | Job system, `/jobs/*`, progress reporting in scan loop | ✅ **complete** — async scan with live progress. **Deviation: thread pool, not Redis + RQ** (see §2.1) |
-| **5** | Next.js foundation — App Router, TypeScript, Tailwind with tokens ported from `theme.py`, shadcn/ui, theme provider, AppShell, generated API types | Both themes render; type-safe client; auth flow works |
+| **5** | Next.js foundation — App Router, TypeScript, Tailwind tokens from `theme.py`, theme provider, AppShell, generated API types | ✅ **complete** — both themes render, typed client, auth flow verified end to end |
 | **6** | **Stock detail screen** (`/stocks/[ticker]`) — Lightweight Charts, indicators, TV rating, watchlist action, Framer Motion | Visually matches current Analysis tab's data exactly |
 | **7** | Remaining screens — Overview, Portfolio, Watchlist, Backtest, Forecast, Journal, Assistant | Feature parity with all 7 Streamlit tabs |
 | **8** | Fundamentals + News (new). Provider selection documented with pricing/limits | P/E, EPS, revenue, earnings, 52w range, financials; company + market news |

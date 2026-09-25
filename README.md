@@ -3,7 +3,7 @@
 A stock analysis platform: technical analysis, strategy backtesting, and a
 price-direction model that reports honestly on whether it works.
 
-Python · FastAPI · Streamlit · scikit-learn · pandas · SQLAlchemy
+Next.js · TypeScript · Python · FastAPI · scikit-learn · SQLAlchemy
 
 ---
 
@@ -144,6 +144,39 @@ The executor is swappable without touching the schema or the API.
 
 The older synchronous `POST /scan` still exists but is marked deprecated —
 no client should build against it.
+
+---
+
+## Frontend
+
+A Next.js app is replacing the Streamlit UI. Both run today; Streamlit is
+retired only once the new one reaches parity.
+
+```bash
+# terminal 1 — API
+uvicorn api.main:app --reload --port 8000
+
+# terminal 2 — web
+cd frontend && npm install && npm run dev
+```
+
+Opens at `http://localhost:3000`.
+
+- **Next.js 16 · React 19 · TypeScript · Tailwind 4** (CSS-first tokens)
+- **Motion** for transitions, **Lightweight Charts** for price data,
+  **Recharts** for allocation, **Lucide** for icons
+- **Types generated from the OpenAPI schema** (`npm run gen:api`), so
+  renaming a backend field is a compile error in the client, not
+  `undefined` at runtime
+- **Light default, dark by choice.** The palette is ported verbatim from
+  [`theme.py`](theme.py) so the two UIs cannot drift while both exist. A
+  blocking inline script applies the stored theme before first paint, so
+  there is no flash of the wrong colours
+- **Desktop gets a sidebar, mobile gets a bottom tab bar** — not a shrunken
+  desktop layout
+- `/api/*` is proxied to FastAPI by a Next.js rewrite, keeping the browser
+  on one origin so the httpOnly `SameSite=Lax` session cookies keep working
+  without weakening them to `SameSite=None`
 
 ---
 
