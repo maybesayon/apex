@@ -342,6 +342,18 @@ label leakage at walk-forward fold boundaries.
 
 ---
 
+## Deploying
+
+[`DEPLOYMENT.md`](DEPLOYMENT.md) covers getting a shareable URL on free
+tiers: Vercel for the frontend, Render for the API, Neon for Postgres.
+
+Two things it calls out that are easy to get wrong: Render's free Postgres
+is **deleted after 30 days** (use Neon), and the Next.js `/api` proxy must
+stay in place so session cookies remain `SameSite=Lax` rather than being
+weakened for cross-origin use.
+
+---
+
 ## Roadmap
 
 [`MIGRATION_PLAN.md`](MIGRATION_PLAN.md) documents a phased migration of the
