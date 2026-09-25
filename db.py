@@ -140,6 +140,37 @@ class RefreshToken(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
 
+class Job(Base):
+    """
+    A long-running task and its progress.
+
+    Job state lives in the database rather than in the worker's memory so
+    that progress is readable from any process, survives a restart, and
+    leaves a history. That holds whether the work runs in a background
+    thread or, later, in a separate RQ worker.
+    """
+    __tablename__ = "jobs"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(32), index=True)
+    status: Mapped[str] = mapped_column(String(16), index=True, default="queued")
+    params: Mapped[str | None] = mapped_column(Text, nullable=True)       # JSON
+    progress_done: Mapped[int] = mapped_column(Integer, default=0)
+    progress_total: Mapped[int] = mapped_column(Integer, default=0)
+    progress_label: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    result: Mapped[str | None] = mapped_column(Text, nullable=True)       # JSON
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Refreshed on every progress tick. Staleness — not merely being in the
+    # 'running' state — is what identifies an abandoned job, so a second
+    # worker starting up cannot kill another worker's live job.
+    heartbeat_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True)
+
+
 @contextmanager
 def session():
     s = SessionLocal()
@@ -371,3 +402,153 @@ def purge_expired_refresh_tokens() -> int:
         for r in rows:
             s.delete(r)
         return len(rows)
+
+
+# ── Jobs ──────────────────────────────────────────────────────────────────────
+
+import json as _json
+
+
+def _job_to_dict(row: "Job") -> dict:
+    def _iso(dt):
+        if dt is None:
+            return None
+        return (dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)).isoformat()
+
+    return {
+        "id": row.id,
+        "kind": row.kind,
+        "status": row.status,
+        "params": _json.loads(row.params) if row.params else {},
+        "progress": {
+            "done": row.progress_done,
+            "total": row.progress_total,
+            "label": row.progress_label,
+            "pct": round(row.progress_done / row.progress_total * 100, 1)
+                   if row.progress_total else None,
+        },
+        "result": _json.loads(row.result) if row.result else None,
+        "error": row.error,
+        "created_at": _iso(row.created_at),
+        "started_at": _iso(row.started_at),
+        "finished_at": _iso(row.finished_at),
+    }
+
+
+def create_job(job_id: str, user_id: int, kind: str, params: dict) -> dict:
+    with session() as s:
+        row = Job(id=job_id, user_id=user_id, kind=kind,
+                  params=_json.dumps(params), status="queued")
+        s.add(row)
+        s.flush()
+        return _job_to_dict(row)
+
+
+def get_job(job_id: str, user_id: int | None = None) -> dict | None:
+    """user_id scopes the lookup, so one account cannot read another's job."""
+    with session() as s:
+        row = s.get(Job, job_id)
+        if row is None or (user_id is not None and row.user_id != user_id):
+            return None
+        return _job_to_dict(row)
+
+
+def list_jobs(user_id: int, limit: int = 20) -> list[dict]:
+    with session() as s:
+        rows = s.scalars(
+            select(Job).where(Job.user_id == user_id)
+            .order_by(Job.created_at.desc()).limit(limit)
+        ).all()
+        return [_job_to_dict(r) for r in rows]
+
+
+def start_job(job_id: str) -> None:
+    with session() as s:
+        row = s.get(Job, job_id)
+        if row:
+            row.status = "running"
+            row.started_at = row.heartbeat_at = _utcnow()
+
+
+def update_job_progress(job_id: str, done: int, total: int, label: str | None = None) -> None:
+    with session() as s:
+        row = s.get(Job, job_id)
+        if row:
+            row.progress_done, row.progress_total = done, total
+            row.heartbeat_at = _utcnow()
+            if label:
+                row.progress_label = label[:128]
+
+
+def finish_job(job_id: str, result) -> None:
+    with session() as s:
+        row = s.get(Job, job_id)
+        if row:
+            row.status, row.result = "finished", _json.dumps(result)
+            row.finished_at = _utcnow()
+
+
+def fail_job(job_id: str, error: str) -> None:
+    with session() as s:
+        row = s.get(Job, job_id)
+        if row:
+            row.status, row.error = "failed", str(error)[:2000]
+            row.finished_at = _utcnow()
+
+
+def request_cancel(job_id: str, user_id: int) -> bool:
+    with session() as s:
+        row = s.get(Job, job_id)
+        if row is None or row.user_id != user_id:
+            return False
+        if row.status in ("finished", "failed", "cancelled"):
+            return False
+        row.cancel_requested = True
+        if row.status == "queued":
+            row.status, row.finished_at = "cancelled", _utcnow()
+        return True
+
+
+def is_cancel_requested(job_id: str) -> bool:
+    with session() as s:
+        row = s.get(Job, job_id)
+        return bool(row and row.cancel_requested)
+
+
+def mark_job_cancelled(job_id: str) -> None:
+    with session() as s:
+        row = s.get(Job, job_id)
+        if row:
+            row.status, row.finished_at = "cancelled", _utcnow()
+
+
+JOB_STALE_SECONDS = int(os.environ.get("APEX_JOB_STALE_SECONDS", "900"))
+
+
+def reap_orphaned_jobs(stale_seconds: int | None = None) -> int:
+    """
+    Fail jobs abandoned by a process that died.
+
+    Only *stale* jobs are reaped — those with no heartbeat for
+    JOB_STALE_SECONDS. Reaping every running job instead would mean a
+    second worker booting could kill jobs still running healthily in the
+    first, which is exactly wrong in a multi-process deployment.
+    """
+    cutoff_seconds = JOB_STALE_SECONDS if stale_seconds is None else stale_seconds
+    cutoff = _utcnow() - timedelta(seconds=cutoff_seconds)
+
+    def _aware(dt):
+        return dt if (dt is None or dt.tzinfo) else dt.replace(tzinfo=timezone.utc)
+
+    with session() as s:
+        rows = s.scalars(select(Job).where(Job.status.in_(("queued", "running")))).all()
+        reaped = 0
+        for r in rows:
+            last_seen = _aware(r.heartbeat_at) or _aware(r.started_at) or _aware(r.created_at)
+            if last_seen is not None and last_seen > cutoff:
+                continue        # still alive
+            r.status = "failed"
+            r.error = "Worker stopped before the job finished (server restart?)"
+            r.finished_at = _utcnow()
+            reaped += 1
+        return reaped

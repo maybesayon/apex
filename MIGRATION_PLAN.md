@@ -220,15 +220,34 @@ apex/
 Processes: **Next.js** · **FastAPI** · **RQ worker** · **Redis** · **Postgres**.
 Up from one today. This is the real operational cost of the migration.
 
-### 2.1 Job system: RQ, not ARQ or Celery
+### 2.1 Job system — implemented as a thread pool, not RQ
 
-**RQ.** The reason is concrete: the entire analysis engine is *synchronous
-and blocking* — `yfinance`, `scikit-learn`, `ta`, `requests`, `sqlite3`.
-ARQ is asyncio-native, so every call would need wrapping in
-`run_in_executor`, adding ceremony that buys nothing. Celery's routing,
-chords, and beat scheduling are unused weight here. RQ forks a process per
-job, runs plain sync functions with zero modification, and its API is about
-four calls. It fits this codebase exactly.
+**Original decision: RQ**, because the analysis engine is synchronous and
+blocking (`yfinance`, `scikit-learn`, `ta`, `requests`), which makes
+asyncio-native ARQ a poor fit and Celery unnecessary weight.
+
+**What shipped in Phase 4: a thread-pool executor, no broker.** Two
+reasons, recorded so the decision can be revisited deliberately:
+
+1. **Cost.** Redis is a paid add-on on almost every host, and the project
+   has no budget. The only work needing a job today is one ~46s scan, run
+   occasionally on a user action.
+2. **Nothing is lost by deferring.** Job *state* lives in the database,
+   which is the right place regardless of executor — progress readable from
+   any process, survives restarts, leaves a history. RQ's own result store
+   would not provide that. Switching means implementing `submit()` against
+   RQ and setting `APEX_JOB_BACKEND=rq`; the schema, the HTTP API and the
+   frontend do not move.
+
+**What is given up:** a deploy or crash kills a running scan (stale jobs
+are failed on startup rather than spinning forever); no retries; no
+independent worker scaling. Acceptable for one occasional task. Revisit
+when jobs become frequent, must survive deploys, or need retrying.
+
+**Reaping is heartbeat-based, not status-based.** Failing every job in the
+`running` state at startup would mean a second worker booting kills jobs
+the first is still running. Only jobs with no heartbeat for
+`APEX_JOB_STALE_SECONDS` (default 900) are reaped.
 
 Job contract:
 
@@ -266,7 +285,7 @@ Both move before the bulk screen migration.
 | **1** | *(this document)* | ✅ complete |
 | **2** | FastAPI boundary, contract tests, fold in `tv_webhook.py`, SMTP creds to env | ✅ **complete** — 31 operations, 35 contract tests, Flask removed |
 | **3** | Auth rework (JWT, httpOnly cookies, refresh rotation, CSRF) and SQLAlchemy + Alembic | ✅ **complete** — sessions survive restart, reuse detection, Postgres-portable |
-| **4** | Job system — Redis + RQ, `/jobs/*`, progress reporting in scan loop | Broad scan runs async with live progress; failures/timeouts surface |
+| **4** | Job system, `/jobs/*`, progress reporting in scan loop | ✅ **complete** — async scan with live progress. **Deviation: thread pool, not Redis + RQ** (see §2.1) |
 | **5** | Next.js foundation — App Router, TypeScript, Tailwind with tokens ported from `theme.py`, shadcn/ui, theme provider, AppShell, generated API types | Both themes render; type-safe client; auth flow works |
 | **6** | **Stock detail screen** (`/stocks/[ticker]`) — Lightweight Charts, indicators, TV rating, watchlist action, Framer Motion | Visually matches current Analysis tab's data exactly |
 | **7** | Remaining screens — Overview, Portfolio, Watchlist, Backtest, Forecast, Journal, Assistant | Feature parity with all 7 Streamlit tabs |
