@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+/*
+  APEX design system.
+
+  The palette is ported verbatim from theme.py so the Streamlit app and this
+  one cannot drift apart while both exist. Light is the default; dark is a
+  deliberate palette (deep charcoal, lifted surfaces), not an inversion.
+
+  Tailwind 4 is CSS-first: @theme defines the tokens, so `bg-surface` and
+  `text-muted` work everywhere without a config file.
+*/
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter",
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
+
+  --color-bg: #f5f5f7;
+  --color-surface: #ffffff;
+  --color-surface-2: #fafafc;
+  --color-line: rgba(0, 0, 0, 0.07);
+  --color-line-strong: rgba(0, 0, 0, 0.12);
+  --color-ink: #1d1d1f;
+  --color-muted: #6e6e73;
+  --color-faint: #8e8e93;
+  --color-up: #00a862;
+  --color-up-soft: rgba(0, 168, 98, 0.1);
+  --color-down: #e0334b;
+  --color-down-soft: rgba(224, 51, 75, 0.09);
+  --color-accent: #0a84ff;
+  --color-accent-soft: rgba(10, 132, 255, 0.1);
+  --color-warn: #c77700;
+
+  --radius-card: 16px;
+  --radius-lg: 22px;
+
+  --ease-out-apple: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/*
+  Dark palette. Applied by the theme provider setting data-theme="dark" on
+  <html>, which is set from a blocking inline script before first paint so
+  there is never a flash of the wrong theme.
+*/
+[data-theme="dark"] {
+  --color-bg: #0c0d11;
+  --color-surface: #17191f;
+  --color-surface-2: #1e212a;
+  --color-line: rgba(255, 255, 255, 0.08);
+  --color-line-strong: rgba(255, 255, 255, 0.14);
+  --color-ink: #f2f3f7;
+  --color-muted: #9ba1ac;
+  --color-faint: #6e7683;
+  --color-up: #2fd48a;
+  --color-up-soft: rgba(47, 212, 138, 0.13);
+  --color-down: #ff5c6e;
+  --color-down-soft: rgba(255, 92, 110, 0.13);
+  --color-accent: #4a9eff;
+  --color-accent-soft: rgba(74, 158, 255, 0.14);
+  --color-warn: #ffb020;
+}
+
+@layer base {
+  html {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  /* Only colours cross-fade on a theme switch. Transitioning every
+     property would make layout changes feel laggy. */
+  html.theme-transition,
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition:
+      background-color 0.32s var(--ease-out-apple),
+      border-color 0.32s var(--ease-out-apple),
+      color 0.32s var(--ease-out-apple),
+      fill 0.32s var(--ease-out-apple) !important;
+  }
+
+  ::selection {
+    background: var(--color-accent-soft);
+  }
+
+  /* Prices and figures use tabular numerals so digits do not jitter as
+     values tick. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer utilities {
+  .shadow-card {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 8px 24px rgba(0, 0, 0, 0.05);
+  }
+  .shadow-card-lg {
+    box-shadow:
+      0 2px 6px rgba(0, 0, 0, 0.05),
+      0 16px 40px rgba(0, 0, 0, 0.08);
+  }
+  [data-theme="dark"] .shadow-card {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.4),
+      0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  [data-theme="dark"] .shadow-card-lg {
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.45),
+      0 20px 48px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Hide scrollbars on horizontal card rails without losing scrolling. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
