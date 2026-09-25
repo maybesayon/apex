@@ -21,8 +21,12 @@ import {
   Star,
   Sun,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useSession, useTheme } from "@/components/providers";
+import { StockSearch } from "@/components/stock-search";
+import { TickerTape } from "@/components/tradingview";
 import { Button } from "@/components/ui";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export const NAV = [
@@ -166,6 +170,25 @@ function MobileHeader() {
   );
 }
 
+/**
+ * The scrolling price strip, fed by the user's own watchlist so it shows
+ * what they actually follow rather than a fixed list.
+ */
+function Tape() {
+  const [symbols, setSymbols] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    api
+      .watchlist()
+      .then((items) => setSymbols(items.map((i) => i.symbol)))
+      .catch(() => setSymbols([]));
+  }, []);
+
+  if (symbols === null) return <div className="h-[50px]" />;
+  const list = Array.from(new Set(["SPY", "QQQ", ...symbols])).slice(0, 12);
+  return <TickerTape symbols={list} />;
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh bg-bg">
@@ -173,7 +196,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <MobileHeader />
       <main className="md:pl-[248px]">
         {/* Bottom padding clears the mobile tab bar. */}
-        <div className="mx-auto w-full max-w-[1180px] px-4 pb-28 pt-5 md:px-8 md:pb-14 md:pt-8">
+        <div className="mx-auto w-full max-w-[1180px] px-4 pb-28 pt-4 md:px-8 md:pb-14 md:pt-6">
+          <Tape />
+          <div className="mb-6 max-w-[520px]">
+            <StockSearch />
+          </div>
           {children}
         </div>
       </main>

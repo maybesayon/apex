@@ -287,7 +287,7 @@ Both move before the bulk screen migration.
 | **3** | Auth rework (JWT, httpOnly cookies, refresh rotation, CSRF) and SQLAlchemy + Alembic | ✅ **complete** — sessions survive restart, reuse detection, Postgres-portable |
 | **4** | Job system, `/jobs/*`, progress reporting in scan loop | ✅ **complete** — async scan with live progress. **Deviation: thread pool, not Redis + RQ** (see §2.1) |
 | **5** | Next.js foundation — App Router, TypeScript, Tailwind tokens from `theme.py`, theme provider, AppShell, generated API types | ✅ **complete** — both themes render, typed client, auth flow verified end to end |
-| **6** | **Stock detail screen** (`/stocks/[ticker]`) — Lightweight Charts, indicators, TV rating, watchlist action, Framer Motion | Visually matches current Analysis tab's data exactly |
+| **6** | Stock detail screen (`/stocks/[ticker]`) — Lightweight Charts, indicators, TV rating, forecast, watchlist action | ✅ **complete** — verified against live data; ticker tape and search added to the shell |
 | **7** | Remaining screens — Overview, Portfolio, Watchlist, Backtest, Forecast, Journal, Assistant | Feature parity with all 7 Streamlit tabs |
 | **8** | Fundamentals + News (new). Provider selection documented with pricing/limits | P/E, EPS, revenue, earnings, 52w range, financials; company + market news |
 | **9** | Regression + polish — output comparison vs Streamlit, responsive, a11y, loading/error/empty states | Side-by-side outputs match; Lighthouse ≥ 90 |

@@ -74,9 +74,23 @@ def history(symbol: Ticker, period: str = Query("1y")):
 
 @router.get("/stocks/{symbol}/profile", response_model=Profile)
 def profile(symbol: Ticker):
-    from prices import get_company_profile
+    """
+    Company profile.
 
-    return Profile(**to_jsonable(get_company_profile(symbol)))
+    get_company_profile needs a Finnhub key and otherwise returns the ticker
+    as the name, which shows up in the UI as "AAPL — AAPL". The symbol index
+    already holds real company names from the S&P scrape, so fall back to
+    that before giving up.
+    """
+    from prices import get_company_profile
+    from symbols import get_symbol_index
+
+    data = dict(get_company_profile(symbol))
+    if not data.get("name") or data["name"] == symbol:
+        indexed = get_symbol_index().get(symbol)
+        if indexed and indexed != symbol:
+            data["name"] = indexed
+    return Profile(**to_jsonable(data))
 
 
 @router.get("/stocks/{symbol}/analysis")
