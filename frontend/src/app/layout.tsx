@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { AuthGate } from "@/components/auth-gate";
 import { SessionProvider, ThemeProvider } from "@/components/providers";
 import "./globals.css";
 
@@ -41,7 +42,16 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeProvider>
-          <SessionProvider>{children}</SessionProvider>
+          <SessionProvider>
+            {/*
+              The shell lives in the layout, not a template, so it persists
+              across navigations. In a template it remounted on every route
+              change, which reloaded the TradingView ticker tape each time —
+              visibly jarring, and the vendor script threw on teardown.
+              Per-page entry animation is handled by <PageTransition>.
+            */}
+            <AuthGate>{children}</AuthGate>
+          </SessionProvider>
         </ThemeProvider>
       </body>
     </html>

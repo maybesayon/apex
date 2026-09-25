@@ -14,8 +14,10 @@ import { usePathname } from "next/navigation";
 import {
   BriefcaseBusiness,
   Compass,
+  FlaskConical,
   LineChart,
   LogOut,
+  MessageSquare,
   Moon,
   NotebookPen,
   Star,
@@ -29,12 +31,23 @@ import { Button } from "@/components/ui";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+/**
+ * Primary destinations appear in both the sidebar and the mobile tab bar.
+ * Five is the practical ceiling for a bottom bar before the labels stop
+ * being readable, so the two tools live in the sidebar and are reachable
+ * from cards on the Overview.
+ */
 export const NAV = [
   { href: "/", label: "Overview", icon: LineChart },
   { href: "/markets", label: "Markets", icon: Compass },
   { href: "/portfolio", label: "Portfolio", icon: BriefcaseBusiness },
   { href: "/watchlist", label: "Watchlist", icon: Star },
   { href: "/journal", label: "Journal", icon: NotebookPen },
+] as const;
+
+export const NAV_TOOLS = [
+  { href: "/backtest", label: "Backtest", icon: FlaskConical },
+  { href: "/assistant", label: "Assistant", icon: MessageSquare },
 ] as const;
 
 function isActive(pathname: string, href: string) {
@@ -90,6 +103,32 @@ function Sidebar() {
 
       <nav className="flex flex-1 flex-col gap-0.5">
         {NAV.map(({ href, label, icon: Icon }) => {
+          const active = isActive(pathname, href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14.5px] transition-colors",
+                active
+                  ? "font-medium text-ink"
+                  : "text-muted hover:bg-surface-2 hover:text-ink",
+              )}
+            >
+              {active && (
+                <motion.span
+                  layoutId="nav-active"
+                  className="absolute inset-0 -z-10 rounded-xl bg-surface-2"
+                  transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+                />
+              )}
+              <Icon className="size-[18px]" />
+              {label}
+            </Link>
+          );
+        })}
+        <div className="my-3 h-px bg-line" />
+        {NAV_TOOLS.map(({ href, label, icon: Icon }) => {
           const active = isActive(pathname, href);
           return (
             <Link
