@@ -116,20 +116,38 @@ def score_opportunity(symbol: str) -> dict | None:
         return None
 
 
-def run_full_scan(symbols: list = None, min_score: int = 50) -> list:
+class ScanCancelled(Exception):
+    """Raised when a caller asks to stop a scan part-way through."""
+
+
+def run_full_scan(symbols: list = None, min_score: int = 50,
+                  on_progress=None, should_cancel=None) -> list:
     """
     Scan all symbols and return sorted list of opportunities.
     Filters to min_score and sorts by score descending.
+
+    on_progress(done, total, symbol) is called after each symbol, so a
+    caller can report progress without this module knowing anything about
+    jobs, HTTP or the database.
+
+    should_cancel() is polled between symbols; returning True raises
+    ScanCancelled. Cooperative cancellation is the only kind available
+    here, because a symbol's work is a blocking network call.
     """
     if symbols is None:
         symbols = SCAN_UNIVERSE
 
+    total = len(symbols)
     results = []
-    for sym in symbols:
+    for i, sym in enumerate(symbols, start=1):
+        if should_cancel is not None and should_cancel():
+            raise ScanCancelled(f"cancelled after {i - 1} of {total} symbols")
         print(f"  Scanning {sym}...")
         result = score_opportunity(sym)
         if result and result["score"] >= min_score:
             results.append(result)
+        if on_progress is not None:
+            on_progress(i, total, sym)
         time.sleep(0.3)  # Rate limit protection
 
     # Sort by score descending
@@ -137,7 +155,8 @@ def run_full_scan(symbols: list = None, min_score: int = 50) -> list:
     return results
 
 
-def run_broad_scan(min_score: int = 50, top_n: int = None) -> list:
+def run_broad_scan(min_score: int = 50, top_n: int = None,
+                   on_progress=None, should_cancel=None) -> list:
     """
     Scan the S&P 500 (plus the personal universe): a cheap batched
     pre-filter picks the top_n most active names, then each gets the
@@ -146,9 +165,16 @@ def run_broad_scan(min_score: int = 50, top_n: int = None) -> list:
     from universe import get_broad_universe
     from config import BROAD_SCAN_TOP_N
 
+    if on_progress is not None:
+        # The pre-filter is a single batched download with no per-symbol
+        # granularity, so report it as one indeterminate step rather than
+        # leaving the client at 0% for ten seconds with no explanation.
+        on_progress(0, 1, "Pre-filtering the S&P 500…")
+
     candidates = get_broad_universe(top_n=top_n or BROAD_SCAN_TOP_N)
     print(f"Broad scan: {len(candidates)} candidates after pre-filter")
-    return run_full_scan(candidates, min_score=min_score)
+    return run_full_scan(candidates, min_score=min_score,
+                         on_progress=on_progress, should_cancel=should_cancel)
 
 
 def get_top_picks(n: int = 5) -> list:

@@ -200,6 +200,26 @@ class ScanRequest(BaseModel):
     min_score: int = Field(default=55, ge=0, le=100)
 
 
+class JobProgress(BaseModel):
+    done: int
+    total: int
+    label: str | None = None
+    pct: float | None = Field(default=None, description="None until a total is known")
+
+
+class JobResponse(BaseModel):
+    id: str
+    kind: str
+    status: Literal["queued", "running", "finished", "failed", "cancelled"]
+    params: dict[str, Any] = Field(default_factory=dict)
+    progress: JobProgress
+    result: Any | None = None
+    error: str | None = None
+    created_at: str | None = None
+    started_at: str | None = None
+    finished_at: str | None = None
+
+
 class ChatRequest(BaseModel):
     message: str
     history: list[dict[str, Any]] = Field(default_factory=list)

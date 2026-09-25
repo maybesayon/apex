@@ -112,7 +112,8 @@ Interactive docs at `/docs`, OpenAPI schema at `/openapi.json`.
 | Portfolio | `GET /portfolio` · `PUT/DELETE /portfolio/positions` |
 | Watchlist | `GET/POST /watchlist` · `DELETE /watchlist/{sym}` |
 | Journal | `GET/POST /journal` · `GET /journal/stats` |
-| Operations | `POST /backtest` · `POST /scan` · `POST /chat` |
+| Operations | `POST /backtest` · `POST /chat` |
+| Jobs | `POST /jobs/scan` · `GET /jobs` · `GET/DELETE /jobs/{id}` |
 | Webhooks | `POST /webhooks/tradingview` · `GET/DELETE /alerts` |
 
 Symbol paths accept company names, so `/stocks/apple/analysis` and
@@ -123,9 +124,26 @@ the API layer cannot silently change a number. NaN and Infinity — which
 indicators legitimately produce and JSON cannot represent — are serialised as
 `null` rather than emitted as invalid JSON.
 
-`POST /scan` is synchronous and marked deprecated on arrival: it takes ~46s
-for the broad scope, past most proxy and serverless timeouts. It moves behind
-a job queue in Phase 4.
+**Long scans run as jobs.** A scan takes 21–46 seconds, past most proxy and
+serverless timeouts, so `POST /jobs/scan` returns a job id immediately and the
+client polls for progress:
+
+```
+POST /jobs/scan        -> 202 {"id": "...", "status": "queued"}
+GET  /jobs/{id}        -> {"status": "running", "progress": {"done": 11, "total": 24,
+                            "pct": 45.8, "label": "AMZN"}}
+GET  /jobs/{id}        -> {"status": "finished", "result": {...}}
+DELETE /jobs/{id}      -> request cancellation
+```
+
+Jobs run on a thread pool inside the API process, with their state in the
+database so progress is readable from any process and survives a restart.
+Redis and RQ were the original plan; they are a paid add-on almost
+everywhere, and one ~46s task an hour does not justify a message broker yet.
+The executor is swappable without touching the schema or the API.
+
+The older synchronous `POST /scan` still exists but is marked deprecated —
+no client should build against it.
 
 ---
 
@@ -237,7 +255,7 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-190 tests, **fully offline and deterministic** — they read frozen OHLCV from
+206 tests, **fully offline and deterministic** — they read frozen OHLCV from
 `tests/fixtures/` rather than calling any API, so they produce identical
 numbers on any machine and run in CI without network.
 
@@ -251,6 +269,7 @@ numbers on any machine and run in CI without network.
 | `test_app_render.py` | 6 | Auth gate, both themes |
 | `test_api_contract.py` | 35 | HTTP output equals direct calls, access control |
 | `test_auth_session.py` | 21 | JWT, refresh rotation, CSRF, restart survival |
+| `test_jobs.py` | 16 | Job lifecycle, progress, cancellation, isolation |
 
 **Golden snapshots** pin the exact numbers the analysis engine produces
 today, so any numeric drift during the Next.js migration fails the build.

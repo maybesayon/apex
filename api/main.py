@@ -17,7 +17,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 import db
-from api.routers import analysis_ops, auth, stocks, user_data, webhooks
+from api.routers import analysis_ops, auth, jobs as jobs_router, stocks, user_data, webhooks
 
 API_VERSION = "0.1.0"
 
@@ -58,12 +58,26 @@ app.include_router(auth.router)
 app.include_router(stocks.router)
 app.include_router(user_data.router)
 app.include_router(analysis_ops.router)
+app.include_router(jobs_router.router)
 app.include_router(webhooks.router)
 
 
 @app.on_event("startup")
 def _startup() -> None:
     db.init_db()
+    import jobs
+
+    reaped = jobs.startup()
+    if reaped:
+        # A job still marked running belongs to a process that is gone.
+        print(f"APEX: marked {reaped} orphaned job(s) failed after restart")
+
+
+@app.on_event("shutdown")
+def _shutdown() -> None:
+    import jobs
+
+    jobs.shutdown()
 
 
 @app.get("/health", tags=["meta"])
