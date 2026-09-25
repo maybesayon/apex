@@ -97,7 +97,7 @@ export default function AssistantPage() {
 
   return (
     <PageTransition>
-      <SectionHeading title="Assistant" />
+      <SectionHeading title="Assistant" level={1} />
       <p className="-mt-2 mb-4 max-w-2xl text-[13.5px] text-muted">
         Answers use your live quotes and your own holdings as context. Without
         an Anthropic API key it falls back to a built-in offline analyser.
@@ -174,7 +174,7 @@ export default function AssistantPage() {
             type="submit"
             disabled={busy || !input.trim()}
             aria-label="Send"
-            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-up text-white transition-transform active:scale-95 disabled:opacity-40"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-up text-[var(--color-on-up)] transition-transform active:scale-95 disabled:opacity-40"
           >
             <SendHorizontal className="size-[18px]" />
           </button>

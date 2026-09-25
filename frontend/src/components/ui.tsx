@@ -31,18 +31,26 @@ export function Card({
   );
 }
 
+/**
+ * `level` sets the heading rank. Every page needs exactly one h1 or screen
+ * readers see a document that starts at h2, so the first heading on a page
+ * passes level={1}. The visual size is identical either way.
+ */
 export function SectionHeading({
   title,
   action,
+  level = 2,
 }: {
   title: string;
   action?: React.ReactNode;
+  level?: 1 | 2;
 }) {
+  const Tag = level === 1 ? "h1" : "h2";
   return (
     <div className="mb-3 flex items-baseline justify-between gap-4">
-      <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-ink">
+      <Tag className="text-[17px] font-semibold tracking-[-0.02em] text-ink">
         {title}
-      </h2>
+      </Tag>
       {action}
     </div>
   );
@@ -72,7 +80,8 @@ export function Button({
         "transition-[transform,box-shadow,background-color,opacity] duration-200 ease-[var(--ease-out-apple)]",
         "active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-        variant === "primary" && "bg-up text-white hover:brightness-105",
+        variant === "primary" &&
+          "bg-up text-[var(--color-on-up)] hover:brightness-105",
         variant === "secondary" &&
           "border border-line-strong bg-surface text-ink shadow-card hover:-translate-y-px hover:shadow-card-lg",
         variant === "ghost" && "text-muted hover:bg-surface-2 hover:text-ink",

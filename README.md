@@ -182,6 +182,24 @@ Opens at `http://localhost:3000`.
 
 ---
 
+### Quality
+
+Verified on the production build:
+
+| Lighthouse (desktop) | Score |
+|---|---:|
+| Performance | 100 |
+| Accessibility | 100 |
+| Best Practices | 100 |
+| SEO | 100 |
+
+**Output parity with the Streamlit app is checked field by field** — the
+Python engine, the HTTP API and the rendered DOM agree on every indicator,
+level and signal label. Contrast meets WCAG AA in both themes across every
+route, with no horizontal overflow at 390px, 820px or 1280px.
+
+---
+
 ## Architecture
 
 ~4,100 lines of analysis code across 17 modules, plus the API layer. The

@@ -33,7 +33,7 @@ export default function OverviewPage() {
   return (
     <PageTransition>
       {/* Market pulse — the banner from the Streamlit Overview tab. */}
-      <SectionHeading title="Market" />
+      <SectionHeading title="Market" level={1} />
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         {pulse.loading ? (
           [0, 1, 2, 3].map((i) => (
