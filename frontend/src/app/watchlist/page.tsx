@@ -36,7 +36,7 @@ export default function WatchlistPage() {
 
   return (
     <PageTransition>
-      <SectionHeading title="Watchlist" />
+      <SectionHeading title="Watchlist" level={1} />
       <div className="mb-5 max-w-[520px]">
         <StockSearch placeholder="Find a stock to open or add…" />
       </div>

@@ -147,7 +147,7 @@ export default function PortfolioPage() {
 
   return (
     <PageTransition>
-      <SectionHeading title="Portfolio" />
+      <SectionHeading title="Portfolio" level={1} />
 
       {portfolio.loading ? (
         <Skeleton className="h-[150px] rounded-[var(--radius-lg)]" />

@@ -23,7 +23,7 @@ export default function MarketsPage() {
 
   return (
     <PageTransition>
-      <SectionHeading title="Indices" />
+      <SectionHeading title="Indices" level={1} />
       <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         {indices.loading
           ? INDICES.map((s) => (

@@ -104,6 +104,17 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // No CSRF cookie means no session, so do not ask the server. The probe
+      // would return 401, which the browser logs as a console error on every
+      // first visit for no benefit.
+      const hasSession = document.cookie
+        .split("; ")
+        .some((c) => c.startsWith("apex_csrf="));
+      if (!hasSession) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
       try {
         const me = await api.me();
         if (!cancelled) setUser(me);

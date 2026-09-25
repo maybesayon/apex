@@ -65,7 +65,7 @@ export default function BacktestPage() {
 
   return (
     <PageTransition>
-      <SectionHeading title="Strategy backtester" />
+      <SectionHeading title="Strategy backtester" level={1} />
       <p className="-mt-2 mb-4 max-w-2xl text-[13.5px] text-muted">
         Tests an RSI + MACD momentum strategy over two years of daily bars.
         Results are optimistic: entries transact at the same close that

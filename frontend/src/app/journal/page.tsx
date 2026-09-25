@@ -140,7 +140,7 @@ export default function JournalPage() {
 
   return (
     <PageTransition>
-      <SectionHeading title="Trade journal" action={rows.length > 0 ? <LogTrade onSaved={reload} /> : undefined} />
+      <SectionHeading level={1} title="Trade journal" action={rows.length > 0 ? <LogTrade onSaved={reload} /> : undefined} />
 
       {stats.data && stats.data.trades > 0 && (
         <div className="mb-6 grid gap-2.5 sm:grid-cols-3">

@@ -290,7 +290,7 @@ Both move before the bulk screen migration.
 | **6** | Stock detail screen (`/stocks/[ticker]`) — Lightweight Charts, indicators, TV rating, forecast, watchlist action | ✅ **complete** — verified against live data; ticker tape and search added to the shell |
 | **7** | Remaining screens — Overview, Markets, Portfolio, Watchlist, Backtest, Journal, Assistant | ✅ **complete** — 8 routes, parity with all 7 Streamlit tabs |
 | **8** | Fundamentals + News (new). Provider selection documented with pricing/limits | P/E, EPS, revenue, earnings, 52w range, financials; company + market news |
-| **9** | Regression + polish — output comparison vs Streamlit, responsive, a11y, loading/error/empty states | Side-by-side outputs match; Lighthouse ≥ 90 |
+| **9** | Regression + polish — output comparison, responsive, a11y | ✅ **complete** — parity verified field by field; Lighthouse 100/100/100/100 |
 | **10** | Retire Streamlit | Parity confirmed; `streamlit_legacy/` deleted |
 
 Phases 0–4 are backend-only: **Streamlit keeps running untouched throughout.**

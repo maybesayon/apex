@@ -135,15 +135,15 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-bg">
+      <main className="flex min-h-dvh items-center justify-center bg-bg">
         <Spinner className="size-6 text-muted" />
-      </div>
+      </main>
     );
   }
 
   if (!user) {
     return (
-      <div className="flex min-h-dvh flex-col bg-bg px-4 py-6">
+      <main className="flex min-h-dvh flex-col bg-bg px-4 py-6">
         <div className="flex justify-end">
           <ThemeToggle compact />
         </div>
@@ -158,7 +158,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
             <AuthForm />
           </motion.div>
         </div>
-      </div>
+    </main>
     );
   }
 
