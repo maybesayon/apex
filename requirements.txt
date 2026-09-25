@@ -14,3 +14,9 @@ tradingview-ta==3.3.0
 lxml==6.1.1
 fastapi==0.141.1
 uvicorn[standard]==0.53.0
+pyjwt==2.15.0
+sqlalchemy==2.1.0
+alembic==1.20.0
+
+# Postgres only. Not needed for the SQLite default:
+#   pip install 'psycopg[binary]==3.2.3'

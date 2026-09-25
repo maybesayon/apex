@@ -30,11 +30,20 @@ class LoginRequest(BaseModel):
     password: str
 
 
-class TokenResponse(BaseModel):
+class SessionResponse(BaseModel):
+    """
+    Returned on register / login / refresh.
+
+    Browsers should use the httpOnly cookies set alongside this and echo
+    `csrf_token` in the X-CSRF-Token header on state-changing requests.
+    `access_token` is included for non-browser clients only.
+    """
+    user_id: int
+    username: str
+    csrf_token: str
+    expires_in: int
     access_token: str
     token_type: Literal["bearer"] = "bearer"
-    expires_in: int
-    username: str
 
 
 class UserResponse(BaseModel):

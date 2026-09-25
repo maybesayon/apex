@@ -68,4 +68,19 @@ def _startup() -> None:
 
 @app.get("/health", tags=["meta"])
 def health():
-    return {"status": "ok", "version": API_VERSION}
+    """
+    Liveness plus the auth configuration, so a deployment serving cookies
+    without Secure, or running on a generated dev key, is visible rather
+    than silently insecure.
+    """
+    from api import security
+
+    report = security.config_report()
+    warnings = []
+    if report["env"] in {"production", "prod"}:
+        if not report["cookie_secure"]:
+            warnings.append("cookies are not Secure in production")
+        if not report["secret_key_from_env"]:
+            warnings.append("APEX_SECRET_KEY is not set from the environment")
+    return {"status": "ok", "version": API_VERSION, "auth": report,
+            "warnings": warnings}
