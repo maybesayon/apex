@@ -1,0 +1,44 @@
+# Render blueprint for the APEX API.
+#
+# The database is NOT defined here on purpose. Render's free Postgres is
+# deleted 30 days after creation; point DATABASE_URL at a Neon database
+# instead, which has no expiry on its free tier.
+
+services:
+  - type: web
+    name: apex-api
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements-api.txt
+    # Migrations run on every boot. Alembic is idempotent, so this is safe
+    # to repeat and means a deploy can never serve a schema it has not
+    # migrated to.
+    startCommand: alembic upgrade head && uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.7
+      - key: APEX_ENV
+        value: production
+      # Generated once by Render and kept across deploys. Changing it signs
+      # every existing session out.
+      - key: APEX_SECRET_KEY
+        generateValue: true
+      - key: APEX_COOKIE_SECURE
+        value: "true"
+      - key: APEX_COOKIE_SAMESITE
+        value: lax
+      # Set in the dashboard: the Neon connection string.
+      - key: DATABASE_URL
+        sync: false
+      # Set in the dashboard once the Vercel URL is known.
+      - key: APEX_CORS_ORIGINS
+        sync: false
+      # Optional integrations. Leave blank and the app degrades gracefully.
+      - key: FINNHUB_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: TRADINGVIEW_WEBHOOK_SECRET
+        sync: false
