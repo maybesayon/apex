@@ -142,7 +142,16 @@
   }
 }
 
+@keyframes tape {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  /* A continuously moving strip is exactly what this setting is for. */
+  .animate-\[tape_linear_infinite\] {
+    animation: none !important;
+  }
   *,
   *::before,
   *::after {

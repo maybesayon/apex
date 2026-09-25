@@ -26,7 +26,7 @@ import {
 import { useEffect, useState } from "react";
 import { useSession, useTheme } from "@/components/providers";
 import { StockSearch } from "@/components/stock-search";
-import { TickerTape } from "@/components/tradingview";
+import { TickerTape } from "@/components/ticker-tape";
 import { Button } from "@/components/ui";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
