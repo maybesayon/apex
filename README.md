@@ -174,6 +174,8 @@ Opens at `http://localhost:3000`.
   there is no flash of the wrong colours
 - **Desktop gets a sidebar, mobile gets a bottom tab bar** — not a shrunken
   desktop layout
+- Routes: `/` · `/markets` · `/stocks/[ticker]` · `/portfolio` ·
+  `/watchlist` · `/journal` · `/backtest` · `/assistant`
 - `/api/*` is proxied to FastAPI by a Next.js rewrite, keeping the browser
   on one origin so the httpOnly `SameSite=Lax` session cookies keep working
   without weakening them to `SameSite=None`

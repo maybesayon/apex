@@ -39,8 +39,20 @@ def score_opportunity(symbol: str) -> dict | None:
             print(f"Scanner: {symbol} has no usable price ({price}) — skipping")
             return None
 
-        # Get company info
-        profile = get_company_profile(symbol)
+        # Get company info. get_company_profile needs a Finnhub key and
+        # otherwise echoes the ticker back as the name, which surfaces as
+        # "LCID / LCID" on a card. The symbol index already holds real names
+        # from the S&P scrape, so prefer that when the profile has nothing.
+        profile = dict(get_company_profile(symbol))
+        if not profile.get("name") or profile["name"] == symbol:
+            try:
+                from symbols import get_symbol_index
+
+                indexed = get_symbol_index().get(symbol)
+                if indexed and indexed != symbol:
+                    profile["name"] = indexed
+            except Exception:
+                pass
 
         atr   = df["atr"].iloc[-1] if "atr" in df.columns else None
         exits = calculate_stop_and_target(price, atr, DEFAULT_STOP_LOSS_PCT, DEFAULT_TARGET_PCT)
