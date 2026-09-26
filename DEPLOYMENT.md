@@ -17,7 +17,8 @@ Getting a link you can send to testers. Everything here is free.
 ## 1. Database (Neon)
 
 1. Sign up at [neon.com](https://neon.com) — no card required.
-2. Create a project. Copy the connection string.
+2. Create a project — region **AWS US East 1 (N. Virginia)**, to match
+   the API region in `render.yaml`. Copy the connection string.
 3. Rewrite the scheme for SQLAlchemy:
 
    ```
@@ -25,8 +26,11 @@ Getting a link you can send to testers. Everything here is free.
    postgresql+psycopg://user:pass@host/db  ← what to paste into Render
    ```
 
-   `db.py` normalises the bare `postgres://` form automatically, but being
-   explicit avoids surprises.
+   `db.py` normalises both `postgres://` and `postgresql://` onto the
+   psycopg driver automatically, so pasting Neon's string verbatim works.
+
+**Verified against a real Neon database:** all 206 tests pass on
+PostgreSQL 18.6, including through Neon's connection pooler.
 
 Neon suspends compute after 5 minutes idle, so the 100 monthly
 compute-hours only burn while someone is actually using the app.

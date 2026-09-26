@@ -9,7 +9,10 @@ services:
     name: apex-api
     runtime: python
     plan: free
-    region: oregon
+    # Matches the Neon database region: splitting them adds a
+    # cross-country round trip to every query, and a page load
+    # makes several.
+    region: virginia
     buildCommand: pip install -r requirements-api.txt
     # Migrations run on every boot. Alembic is idempotent, so this is safe
     # to repeat and means a deploy can never serve a schema it has not

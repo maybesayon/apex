@@ -19,7 +19,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import (
     Boolean, DateTime, Float, ForeignKey, Integer, String, Text,
-    UniqueConstraint, create_engine, func, select,
+    UniqueConstraint, create_engine, event, func, select,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
@@ -31,9 +31,16 @@ def _database_url() -> str:
     """
     url = os.environ.get("DATABASE_URL", "").strip()
     if url:
-        # Accept the `postgres://` form some platforms inject.
+        # Normalise every Postgres spelling onto the psycopg (v3) driver.
+        #
+        # Both forms matter: platforms like Heroku inject `postgres://`,
+        # and Neon hands you `postgresql://`. SQLAlchemy maps a bare
+        # `postgresql://` to psycopg2, which is not installed, so it would
+        # fail at connect time with a confusing ModuleNotFoundError.
         if url.startswith("postgres://"):
-            url = url.replace("postgres://", "postgresql+psycopg://", 1)
+            url = "postgresql+psycopg://" + url[len("postgres://"):]
+        elif url.startswith("postgresql://"):
+            url = "postgresql+psycopg://" + url[len("postgresql://"):]
         return url
     path = os.environ.get(
         "APEX_DB_PATH",
@@ -54,6 +61,21 @@ engine = create_engine(
     pool_pre_ping=not _is_sqlite,
     future=True,
 )
+
+if _is_sqlite:
+    @event.listens_for(engine, "connect")
+    def _sqlite_enforce_foreign_keys(dbapi_connection, _record):
+        """
+        SQLite ignores foreign keys unless asked, per connection.
+
+        Without this, ON DELETE CASCADE never fires and orphaned rows are
+        accepted — so development and tests behave differently from
+        Postgres, which is exactly where this was found.
+        """
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
 
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False, future=True)
 

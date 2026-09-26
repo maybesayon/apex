@@ -143,10 +143,14 @@ def test_logout_all_revokes_every_session(temp_db, client):
 
 def test_refresh_tokens_are_stored_hashed(temp_db):
     """A database leak must not hand out live sessions."""
+    import auth
     import db
     from api import security
 
-    token, _ = security.issue_refresh_token(1)
+    # A real user: refresh_tokens.user_id is a foreign key, and issuing one
+    # for a non-existent account is exactly what the constraint forbids.
+    uid = auth.register("hashcheck", "h@example.com", "hashcheck-pass-1")
+    token, _ = security.issue_refresh_token(uid)
     with db.session() as s:
         rows = s.query(db.RefreshToken).all()
     stored = [r.token_hash for r in rows]
