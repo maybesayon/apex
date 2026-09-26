@@ -305,7 +305,7 @@ First user-visible change is Phase 5.
 | ~~No regression baseline exists~~ | ~~High~~ | ✅ Resolved in Phase 0 — 134 offline tests with golden snapshots |
 | Historical data depends entirely on an unofficial scraper | **High** | Isolated to one function; swap is contained. Revisit post-migration per decision 3 |
 | ~~Silent numeric drift during port~~ | ~~High~~ | ✅ Resolved in Phase 2 — 35 contract tests assert API output equals direct calls |
-| SQLite on ephemeral storage loses all accounts | **High** | ⚠️ Partly resolved — the code is Postgres-portable via `DATABASE_URL`, but Postgres itself is **untested** (no server available locally) and is still the default-off path |
+| ~~SQLite on ephemeral storage loses all accounts~~ | ~~High~~ | ✅ Resolved — 206 tests verified against a real Neon Postgres 18.6 database |
 | Ops surface grows 1 → 5 processes | Medium | `docker-compose` for local; single PaaS with managed Redis/Postgres |
 | Lightweight Charts has no built-in indicator overlays | Medium | Bollinger/MA are extra line series; RSI is a second pane. Both supported |
 | Scan cost grows past 46s | Medium | Already async after Phase 4; add concurrency inside the worker |

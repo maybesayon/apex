@@ -130,8 +130,36 @@ def offline(monkeypatch):
 
 @pytest.fixture
 def temp_db(monkeypatch, tmp_path):
-    """A fresh database per test, so account tests never share state."""
+    """
+    A fresh database per test, so account tests never share state.
+
+    Normally that is a throwaway SQLite file. Setting DATABASE_URL instead
+    runs the same tests against a real Postgres — which is how the Postgres
+    path gets verified — but DATABASE_URL takes precedence over
+    APEX_DB_PATH, so isolation has to come from dropping and recreating the
+    schema between tests rather than from a per-test file.
+
+    That is destructive, so it requires APEX_TEST_ALLOW_POSTGRES=1. Without
+    that guard, anyone running `DATABASE_URL=<production> pytest` would
+    silently wipe their real database.
+    """
     import importlib
+
+    external = os.environ.get("DATABASE_URL", "").strip()
+    if external:
+        if os.environ.get("APEX_TEST_ALLOW_POSTGRES") != "1":
+            pytest.skip(
+                "DATABASE_URL is set. These tests DROP ALL TABLES, so they "
+                "refuse to touch it unless APEX_TEST_ALLOW_POSTGRES=1."
+            )
+        import db as db_module
+        importlib.reload(db_module)
+        db_module.Base.metadata.drop_all(db_module.engine)
+        db_module.init_db()
+        import auth as auth_module
+        importlib.reload(auth_module)
+        return db_module
+
     db_path = tmp_path / "apex_test.db"
     monkeypatch.setenv("APEX_DB_PATH", str(db_path))
     import db as db_module

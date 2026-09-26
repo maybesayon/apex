@@ -288,10 +288,10 @@ database, rotated on every use, and a replayed token revokes its whole
 family. Sessions survive a restart. Still missing: email verification,
 password reset, and rate limiting or lockout on login. Serve over HTTPS.
 
-**Postgres support is untested.** The storage layer is SQLAlchemy and
-switches with one environment variable, and every table compiles for the
-Postgres dialect — but no Postgres server was available to run it against,
-so treat that path as unverified until someone does.
+**Postgres is verified.** The storage layer is SQLAlchemy and switches
+with one environment variable. The full suite has been run against a real
+Neon database on PostgreSQL 18.6 — all 206 tests pass, through the
+connection pooler.
 
 **Two data sources are unofficial.** `yfinance` scrapes Yahoo and is the sole
 source of historical OHLCV; `tradingview-ta` scrapes TradingView. Fine for
