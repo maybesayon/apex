@@ -34,3 +34,6 @@ frontend/.next/
 frontend/out/
 frontend/next-env.d.ts
 frontend/.env*.local
+
+# Temporary share logs
+.share-logs/
