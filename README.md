@@ -75,11 +75,27 @@ git clone https://github.com/maybesayon/apex.git
 cd apex
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-streamlit run app.py
 ```
 
-Opens at `http://localhost:8501`. Create an account on first launch — your
-watchlist, holdings and journal are stored locally in `apex.db`.
+The app is a Next.js frontend over a FastAPI backend, so it needs both
+running. Two terminals:
+
+```bash
+# terminal 1 — API on :8000
+.venv/bin/uvicorn api.main:app --port 8000
+```
+
+```bash
+# terminal 2 — web on :3000
+cd frontend && npm install && npm run dev
+```
+
+Open `http://localhost:3000` and create an account on the sign-in screen.
+Your watchlist, holdings and journal are stored locally in `apex.db`.
+
+> The original Streamlit UI still ships alongside it (`streamlit run app.py`,
+> port 8501) until the migration reaches parity. Both import the same
+> analysis modules, so neither can drift from the other.
 
 Optional keys in `.env` (copy from `.env.example`):
 
