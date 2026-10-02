@@ -5,6 +5,11 @@ price-direction model that reports honestly on whether it works.
 
 Next.js · TypeScript · Python · FastAPI · scikit-learn · SQLAlchemy
 
+![APEX — a 22 second walkthrough](docs/demo.gif)
+
+> Every frame above is the running app against live market data, nothing
+> mocked. [Full quality, with sound](docs/demo.mp4).
+
 ---
 
 ## What it does

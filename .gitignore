@@ -37,3 +37,11 @@ frontend/.env*.local
 
 # Temporary share logs
 .share-logs/
+
+# Launch-video build: 675 rendered frames and raw audio, ~150MB.
+# The finished demo lives in docs/, which is committed.
+brag-output/
+
+# Plugin scratch
+.agents/
+skills-lock.json
